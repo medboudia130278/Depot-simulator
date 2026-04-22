@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Depot — Fit-Out Estimator v1</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0F172A;--panel:#1E293B;--surface:#F8FAFC;--surf2:#F1F5F9;
+  --border:#E2E8F0;--border2:#CBD5E1;
+  --text:#0F172A;--tsec:#475569;--tter:#94A3B8;
+  --blue:#1D4ED8;--bluel:#DBEAFE;--bluem:#1E3A8A;
+  --amber:#B45309;--amberl:#FEF3C7;
+  --green:#065F46;--greenl:#D1FAE5;
+  --red:#991B1B;--redl:#FEE2E2;
+  --purple:#4C1D95;--purplel:#EDE9FE;
+  --teal:#0F766E;--teall:#CCFBF1;
+  --pink:#831843;--pinkl:#FCE7F3;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --radius:8px;--radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--surface);color:var(--text);font-size:14px}
+.app-header{background:var(--bg);color:#fff;padding:0 24px;display:flex;align-items:center;height:56px;gap:16px;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--bluem)}
+.app-logo{font-family:var(--mono);font-size:13px;font-weight:500;color:#93C5FD}
+.app-title{font-size:13px;color:#94A3B8;font-weight:300}
+.header-spacer{flex:1}
+.app-badge{font-family:var(--mono);font-size:10px;background:var(--bluem);color:#93C5FD;padding:3px 8px;border-radius:4px}
+.tabs-nav{background:var(--panel);border-bottom:1px solid var(--bluem);display:flex;padding:0 20px;gap:4px;position:sticky;top:56px;z-index:99}
+.tab-btn{font-family:var(--sans);font-size:12px;font-weight:500;color:#94A3B8;padding:12px 16px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab-btn.active{color:#93C5FD;border-bottom-color:#3B82F6}
+.tab-panel{display:none;padding:24px;max-width:1280px;margin:0 auto}
+.tab-panel.active{display:block}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px}
+.card-header{font-size:11px;font-weight:600;color:var(--tsec);letter-spacing:.07em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:750px){.two-col,.three-col{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label{font-size:11px;font-weight:500;color:var(--tsec)}
+.field input,.field select{font-family:var(--mono);font-size:13px;padding:7px 10px;border:1.5px solid var(--border2);border-radius:6px;background:var(--amberl);color:var(--amber);font-weight:500;outline:none;transition:border .15s}
+.field input:focus{border-color:#F59E0B;box-shadow:0 0 0 2px rgba(245,158,11,.15)}
+.field input.ro{background:var(--surf2);color:var(--tsec);border-color:var(--border);font-weight:400}
+.field .hint{font-size:10px;color:var(--tter);line-height:1.4}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:700px){.kpi-row{grid-template-columns:1fr 1fr}}
+.kpi-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-card.blue::before{background:var(--blue)}
+.kpi-card.green::before{background:#10B981}
+.kpi-card.amber::before{background:#F59E0B}
+.kpi-card.purple::before{background:#7C3AED}
+.kpi-label{font-size:10px;font-weight:500;color:var(--tsec);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.kpi-value{font-family:var(--mono);font-size:22px;font-weight:500;line-height:1}
+.kpi-unit{font-family:var(--mono);font-size:10px;color:var(--tsec);margin-top:4px}
+.section-title{font-size:10px;font-weight:600;color:var(--tsec);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.staff-total{display:flex;gap:24px;padding:10px 14px;background:var(--surf2);border-radius:6px;border:1px solid var(--border);margin-top:4px;font-size:12px;color:var(--tsec)}
+.staff-total strong{color:var(--text);font-family:var(--mono)}
+/* ITEMS TABLE */
+.items-wrap{overflow-x:auto}
+.items-tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:960px}
+.items-tbl th{position:sticky;top:0;background:var(--surf2);padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--tsec);letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid var(--border);white-space:nowrap;z-index:2}
+.items-tbl th.r{text-align:right}
+.items-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.items-tbl tr:hover td{background:#F8FAFC}
+.cat-row td{background:var(--surf2)!important;padding:9px 10px;font-weight:600;font-size:11px;border-top:2px solid var(--border2);border-bottom:1px solid var(--border)}
+.cat-label{display:flex;align-items:center;gap:8px}
+.cat-strip{width:4px;height:16px;border-radius:2px;flex-shrink:0}
+.items-tbl input[type=number]{font-family:var(--mono);font-size:12px;width:72px;padding:4px 6px;border:1.5px solid var(--border2);border-radius:4px;text-align:right}
+.items-tbl input.amber{background:var(--amberl);color:var(--amber);font-weight:500;border-color:#FDE68A}
+.items-tbl input.grey{background:var(--surf2);color:var(--tsec)}
+.items-tbl .mono{font-family:var(--mono);text-align:right}
+.items-tbl .total-cap{font-family:var(--mono);text-align:right;color:var(--blue);font-weight:500}
+.items-tbl .total-rec{font-family:var(--mono);text-align:right;color:var(--teal);font-weight:500}
+.items-tbl .rec-note{font-size:10px;color:var(--tter);font-style:italic}
+.items-tbl .qty-auto{font-size:9px;color:var(--tter);display:block;margin-top:1px}
+.sub-row td{background:#F0FDF4!important;font-weight:600}
+.grand-row td{background:var(--bluel)!important;font-weight:700;font-size:13px;border-top:2px solid var(--border2)}
+/* SUMMARY */
+.sum-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.sum-tbl th{background:var(--surf2);padding:9px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--tsec);letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid var(--border)}
+.sum-tbl th.r{text-align:right}
+.sum-tbl td{padding:9px 12px;border-bottom:1px solid var(--border)}
+.sum-tbl tr:last-child td{border-bottom:none}
+.sum-tbl .r{font-family:var(--mono);text-align:right}
+.sum-tbl .bold{font-weight:600}
+.sum-tbl tr:nth-child(even) td{background:#FAFBFC}
+.sum-tbl .grand td{background:var(--bluel);font-weight:700;font-size:13px;border-top:2px solid var(--border2)}
+.print-btn{font-family:var(--sans);font-size:12px;font-weight:500;padding:8px 18px;border:1.5px solid var(--border2);border-radius:6px;cursor:pointer;background:white;color:var(--text);transition:all .15s;float:right}
+.print-btn:hover{background:var(--bg);color:white;border-color:var(--bg)}
+.type-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:12px;font-weight:500}
+.contract-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bluel);border-radius:8px;border:1px solid #BFDBFE;margin-bottom:16px}
+.contract-bar label{font-size:12px;font-weight:500;color:var(--bluem)}
+.contract-bar input{font-family:var(--mono);font-size:14px;font-weight:600;width:70px;padding:5px 8px;border:1.5px solid #93C5FD;border-radius:6px;background:#fff;color:var(--blue);text-align:center}
+.contract-bar .hint{font-size:11px;color:#3B82F6;font-style:italic;flex:1}
+@media print{.tabs-nav,.app-header,.print-btn,.contract-bar input{display:none!important}.tab-panel{display:block!important;padding:12px}.app-header-print{display:block!important}}
+</style>
+</head>
+<body>
+<div class="app-header">
+  <span class="app-logo">◼ DEPOT</span>
+  <span class="app-title">Fit-Out Estimator</span>
+  <div class="header-spacer"></div>
+  <span class="app-badge">Created by Mohamed BOUDIA</span>
+</div>
+<div class="tabs-nav">
+  <button class="tab-btn active" data-tab="tab-inputs" onclick="sw('tab-inputs')">① Inputs</button>
+  <button class="tab-btn" data-tab="tab-items" onclick="sw('tab-items')">② Equipment & Costs</button>
+  <button class="tab-btn" data-tab="tab-summary" onclick="sw('tab-summary')">③ Summary</button>
+</div>
+
+<!-- ① INPUTS -->
+<div id="tab-inputs" class="tab-panel active">
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header"><div class="card-dot" style="background:#3B82F6"></div>Headcount</div>
+      <div class="section-title">People — drives automatic quantities</div>
+      <div class="two-col" style="gap:10px">
+        <div class="field"><label>Technicians (n_tech)</label>
+          <input type="number" id="n_tech" value="20" min="1" max="500" oninput="update()">
+          <span class="hint">Workshop + electronics technicians total</span></div>
+        <div class="field"><label>Engineers (n_eng)</label>
+          <input type="number" id="n_eng" value="5" min="0" max="100" oninput="update()">
+          <span class="hint">Maintenance engineers and specialists</span></div>
+        <div class="field"><label>Managers (n_mgr)</label>
+          <input type="number" id="n_mgr" value="3" min="0" max="50" oninput="update()">
+          <span class="hint">Depot manager + team leaders</span></div>
+        <div class="field"><label>Electronics test benches</label>
+          <input type="number" id="n_bench" value="1" min="0" max="100" oninput="update()">
+          <span class="hint">Dedicated PCB / electronics test stations</span></div>
+      </div>
+      <div class="staff-total" id="staff-total"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-dot" style="background:#10B981"></div>Quantities to set manually</div>
+      <div class="section-title">Fixed-count items — adjust to project layout</div>
+      <div class="two-col" style="gap:10px">
+        <div class="field"><label>Archive shelving modules</label>
+          <input type="number" id="n_arch" value="8" min="0" max="200" oninput="update()"></div>
+        <div class="field"><label>Depot info screens</label>
+          <input type="number" id="n_screens" value="3" min="0" max="20" oninput="update()"></div>
+        <div class="field"><label>Water dispensers</label>
+          <input type="number" id="n_water" value="4" min="0" max="30" oninput="update()">
+          <span class="hint">Bottle dispensers across zones</span></div>
+        <div class="field"><label>Industrial washing machines</label>
+          <input type="number" id="n_wash" value="2" min="0" max="10" oninput="update()"></div>
+        <div class="field"><label>Industrial dryers</label>
+          <input type="number" id="n_dry" value="2" min="0" max="10" oninput="update()"></div>
+        <div class="field"><label>Fire extinguishers</label>
+          <input type="number" id="n_extg" value="12" min="0" max="200" oninput="update()"></div>
+        <div class="field"><label>First aid kits</label>
+          <input type="number" id="n_firstaid" value="4" min="0" max="50" oninput="update()"></div>
+
+      </div>
+    </div>
+  </div>
+  <div class="contract-bar">
+    <label>Contract duration</label>
+    <input type="number" id="n_years" value="10" min="1" max="30">
+    <span style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--blue)">years</span>
+    <span class="hint">Used to compute Total CAPEX + Recurring × years in the Summary</span>
+  </div>
+  <div class="kpi-row" id="inp-kpi"></div>
+</div>
+
+<!-- ② EQUIPMENT & COSTS -->
+<div id="tab-items" class="tab-panel">
+  <div style="font-size:11px;color:var(--tsec);margin-bottom:12px;padding:10px 14px;background:var(--amberl);border-radius:6px;border:1px solid #FDE68A">
+    <strong style="color:var(--amber)">Amber cells</strong> — unit prices are editable (override with actual quotes).
+    Qty columns show auto-computed values based on headcount; edit directly to override.
+    <strong style="color:var(--blue)">Blue = CAPEX</strong> &nbsp;|&nbsp; <strong style="color:var(--teal)">Teal = Annual recurring</strong>
+  </div>
+  <div class="items-wrap">
+    <table class="items-tbl" id="items-tbl"></table>
+  </div>
+</div>
+
+<!-- ③ SUMMARY -->
+<div id="tab-summary" class="tab-panel">
+  <button class="print-btn" onclick="window.print()">⬇ Print / PDF</button>
+  <div class="kpi-row" id="sum-kpi"></div>
+  <div class="card">
+    <div class="card-header"><div class="card-dot" style="background:#10B981"></div>Cost summary by category</div>
+    <table class="sum-tbl" id="sum-tbl"></table>
+  </div>
+  <div style="font-size:11px;color:var(--tter);font-style:italic;padding:10px 14px;background:var(--surf2);border-radius:6px;border:1px solid var(--border)">
+    Indicative estimates only · Prices in EUR, supplied + installed where applicable ·
+    Recurring costs are annual averages — actual costs may vary · Obtain vendor quotes before budget submission.
+  </div>
+</div>
+
+<script>
+const CATS = {
+  'Technical Workshop': {color:'#1D4ED8', fill:'#DBEAFE'},
+  'Electronics Workshop': {color:'#B45309', fill:'#FEF3C7'},
+  'Engineering Office': {color:'#4C1D95', fill:'#EDE9FE'},
+  'Management Office': {color:'#0F766E', fill:'#CCFBF1'},
+  'Common Areas': {color:'#065F46', fill:'#D1FAE5'},
+  'Locker Room': {color:'#DB2777', fill:'#FCE7F3'},
+  'Safety & Emergency': {color:'#DC2626', fill:'#FEE2E2'},
+  'Warehouse Equipment': {color:'#0369A1', fill:'#E0F2FE'},
+};
+
+const ITEMS = [
+  // Technical Workshop
+  {cat:'Technical Workshop', name:'Workbench (établi)',        qtyExpr:'n_tech',             capex:350, rec:0,   recNote:''},
+  {cat:'Technical Workshop', name:'Workshop stool',            qtyExpr:'n_tech',             capex:120, rec:0,   recNote:''},
+  {cat:'Technical Workshop', name:'Locked tool cabinet',       qtyExpr:'Math.ceil(n_tech/2)',capex:450, rec:0,   recNote:''},
+  {cat:'Technical Workshop', name:'Anti-fatigue mat',          qtyExpr:'n_tech',             capex:45,  rec:15,  recNote:'prorated replacement every 3 yrs'},
+  {cat:'Technical Workshop', name:'Workstation task lamp',     qtyExpr:'n_tech',             capex:85,  rec:0,   recNote:''},
+  {cat:'Technical Workshop', name:'Waste + sorting bin set',   qtyExpr:'Math.ceil(n_tech/4)',capex:95,  rec:30,  recNote:'bin bags & hazardous waste disposal/yr'},
+
+  // Electronics Workshop
+  // Integrated ESD workstation: ESD-safe surface (IEC 61340-5-1) + height-adj frame +
+  // built-in LED task light + power rail (230V + USB) + perforated back panel +
+  // integrated component drawer cabinet + grounding system (wrist strap outlet)
+  // Ref. brands: Treston Concept ESD (FI), Lista 88 ESD (CH), Bott Cubio ESD (DE),
+  //              Sovella (FI), Rousseau (CA). Instrument pack ordered separately.
+  {cat:'Electronics Workshop', name:'Integrated ESD workstation — bench + lighting + power rail + ESD kit + drawers (Treston Concept ESD / Lista 88 / Bott Cubio)', qtyExpr:'n_bench', capex:3800, rec:0, recNote:'IEC 61340-5-1. 10-yr warranty typical. Annual ESD certification check recommended.'},
+  // Instrument pack per station: bench oscilloscope (≥2ch, ≥100MHz) +
+  // variable dual-ch DC bench PSU (0-30V/5A) + bench digital multimeter.
+  // Ref: Keysight EduKit / Rigol DHO / Tektronix TBS2000 + Keysight E36100 + Fluke 87V
+  {cat:'Electronics Workshop', name:'Bench instrument pack — oscilloscope ≥100MHz + dual DC PSU + DMM (Keysight / Rigol / Tektronix / Fluke)', qtyExpr:'n_bench', capex:2400, rec:120, recNote:'Annual calibration (ISO 17025) per station — mandatory for railway maintenance documentation'},
+  // Soldering station: temperature-controlled iron + hot-air rework + fume extractor
+  // Ref: Weller WX series / JBC CD-2BE / Hakko FX-951 — ESD-safe, IPC-7711 capable
+  {cat:'Electronics Workshop', name:'Soldering + rework station ESD-safe — iron + hot-air rework + fume extractor (Weller WX / JBC / Hakko FX-951)', qtyExpr:'n_bench', capex:680, rec:75, recNote:'Tips, solder wire, flux, fume filter cartridges/yr/station'},
+  // Shared anti-static vacuum (HEPA + ESD-dissipative hose) — 1 per workshop
+  {cat:'Electronics Workshop', name:'Anti-static vacuum (shared) — Nilfisk UZ934 ESD / Ruwac DS1400',       qtyExpr:'1',                         capex:420, rec:50,  recNote:'HEPA filter replacement/yr'},
+  // UPS: 1 unit per 3 benches to protect instruments from power transients
+  {cat:'Electronics Workshop', name:'UPS for instrument protection (1 per 3 stations)',                               qtyExpr:'Math.ceil(n_bench/3)',       capex:320, rec:55,  recNote:'Battery replacement prorated/yr'},
+
+  // Engineering Office
+  {cat:'Engineering Office', name:'Desk',                      qtyExpr:'n_eng',              capex:450, rec:0,   recNote:''},
+  {cat:'Engineering Office', name:'Ergonomic office chair',    qtyExpr:'n_eng',              capex:280, rec:0,   recNote:''},
+  {cat:'Engineering Office', name:'Dual monitor setup',        qtyExpr:'n_eng',              capex:380, rec:0,   recNote:''},
+  {cat:'Engineering Office', name:'Technical document cabinet',qtyExpr:'Math.ceil(n_eng/3)',  capex:350, rec:0,   recNote:''},
+  {cat:'Engineering Office', name:'Whiteboard (wall-mounted)', qtyExpr:'1',                  capex:180, rec:0,   recNote:''},
+  {cat:'Engineering Office', name:'Local A3 printer',          qtyExpr:'1',                  capex:420, rec:180, recNote:'toner + maintenance contract/yr'},
+
+  // Management Office
+  {cat:'Management Office', name:'Executive desk',             qtyExpr:'n_mgr',              capex:550, rec:0,   recNote:''},
+  {cat:'Management Office', name:'Executive chair',            qtyExpr:'n_mgr',              capex:320, rec:0,   recNote:''},
+  {cat:'Management Office', name:'Monitor',                    qtyExpr:'n_mgr',              capex:280, rec:0,   recNote:''},
+  {cat:'Management Office', name:'Secured filing cabinet',     qtyExpr:'n_mgr',              capex:380, rec:0,   recNote:''},
+  {cat:'Management Office', name:'Meeting table + 6 chairs',   qtyExpr:'1',                  capex:1200,rec:0,   recNote:''},
+
+  // Common Areas
+  {cat:'Common Areas', name:'MFC printer/scanner A3 colour',   qtyExpr:'1',                  capex:1800,rec:400, recNote:'toner + annual maintenance contract'},
+  {cat:'Common Areas', name:'Document shredder',               qtyExpr:'1',                  capex:280, rec:0,   recNote:''},
+  {cat:'Common Areas', name:'Archive shelving module',         qtyExpr:'n_arch',             capex:180, rec:0,   recNote:''},
+  {cat:'Common Areas', name:'Depot info display screen',       qtyExpr:'n_screens',          capex:580, rec:0,   recNote:''},
+  {cat:'Common Areas', name:'Water dispenser (bottle type)',   qtyExpr:'n_water',            capex:350, rec:480, recNote:'bottle delivery contract/yr per unit'},
+  {cat:'Common Areas', name:'Coffee machine',                  qtyExpr:'1',                  capex:380, rec:240, recNote:'coffee pods + descaling/yr'},
+  {cat:'Common Areas', name:'Office supplies (forfait/person)',qtyExpr:'n_tech+n_eng+n_mgr', capex:0,   rec:180, recNote:'pens, paper, markers, stapler, labels/yr'},
+
+  // Locker Room
+  {cat:'Locker Room', name:'Personal locker (vestiaire)',      qtyExpr:'n_tech+n_eng',       capex:180, rec:0,   recNote:''},
+  {cat:'Locker Room', name:'Locker room bench',                qtyExpr:'Math.ceil((n_tech+n_eng)/5)', capex:220, rec:0, recNote:''},
+  {cat:'Locker Room', name:'Industrial washing machine',       qtyExpr:'n_wash',             capex:2400,rec:380, recNote:'maintenance + detergent/yr per machine'},
+  {cat:'Locker Room', name:'Industrial dryer',                 qtyExpr:'n_dry',              capex:1800,rec:280, recNote:'maintenance/yr per machine'},
+  {cat:'Locker Room', name:'Boot dryer rack',                  qtyExpr:'1',                  capex:280, rec:0,   recNote:''},
+  {cat:'Locker Room', name:'PPE storage cabinet',              qtyExpr:'Math.ceil(n_tech/5)',capex:320, rec:0,   recNote:''},
+
+  // Safety & Emergency
+  {cat:'Safety & Emergency', name:'Fire extinguisher',         qtyExpr:'n_extg',             capex:85,  rec:25,  recNote:'annual inspection/unit'},
+  {cat:'Safety & Emergency', name:'First aid kit',             qtyExpr:'n_firstaid',         capex:120, rec:60,  recNote:'annual restocking/kit'},
+  {cat:'Safety & Emergency', name:'Eye wash station',          qtyExpr:'1',                  capex:380, rec:0,   recNote:''},
+  {cat:'Safety & Emergency', name:'Defibrillator (AED)',       qtyExpr:'1',                  capex:1800,rec:120, recNote:'annual maintenance + electrode pads'},
+  {cat:'Safety & Emergency', name:'Hazardous materials cabinet',qtyExpr:'1',                 capex:850, rec:0,   recNote:'ATEX-rated, chemical storage'},
+  {cat:'Safety & Emergency', name:'Emergency safety shower',   qtyExpr:'1',                  capex:680, rec:0,   recNote:''},
+
+
+  // Warehouse Equipment
+  {cat:'Warehouse Equipment', name:'Manual pallet truck (hand pump)',
+    qtyExpr:'n_ptruck_m', capex:680, rec:40,
+    recNote:'Annual service (seals, pump, wheels) per unit. Ref: Jungheinrich AM 22 / Crown PTH 50 / Toyota BT Lifter'},
+  {cat:'Warehouse Equipment', name:'Electric walkie pallet truck',
+    qtyExpr:'n_ptruck_e', capex:5800, rec:380,
+    recNote:'Annual service + battery maintenance per unit. Ref: Jungheinrich EJE 120 / Crown WP 3000 / Toyota LWE160'},
+  {cat:'Warehouse Equipment', name:'Pallet truck battery charger',
+    qtyExpr:'n_ptruck_e', capex:420, rec:0,
+    recNote:'Dedicated wall-mounted charger per electric truck'},
+  {cat:'Warehouse Equipment', name:'Pallet jack scale (weighing)',
+    qtyExpr:'1', capex:950, rec:55,
+    recNote:'Annual calibration (legal metrology). For incoming goods control.'},
+].map((it,i)=>({...it, id:i, _capex:it.capex, _rec:it.rec}));
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const P = {n_tech:20,n_eng:5,n_mgr:3,n_bench:1,n_arch:8,n_screens:3,n_water:4,n_wash:2,n_dry:2,n_extg:12,n_firstaid:4,n_years:10, n_ptruck_m:2, n_ptruck_e:1};
+const QTY_OVERRIDE = {};
+
+function readInputs(){
+  ['n_tech','n_eng','n_mgr','n_bench','n_arch','n_screens','n_water','n_wash','n_dry','n_extg','n_firstaid','n_years','n_ptruck_m','n_ptruck_e']
+    .forEach(k=>{const el=document.getElementById(k);if(el)P[k]=+el.value||0;});
+}
+
+function evalQty(expr){
+  const {n_tech,n_eng,n_mgr,n_bench,n_arch,n_screens,n_water,n_wash,n_dry,n_extg,n_firstaid,n_ptruck_m,n_ptruck_e}=P;
+  try{return Math.max(0,Math.round(eval(expr)));}catch{return 0;}
+}
+
+function getQty(it){return QTY_OVERRIDE[it.id]!==undefined?QTY_OVERRIDE[it.id]:evalQty(it.qtyExpr);}
+function fmtE(n){return n===0?'—':'€'+Math.round(n).toLocaleString('en-US');}
+
+// ── CALC ──────────────────────────────────────────────────────────────────────
+function calcTotals(){
+  const byCat={};
+  let totalCap=0,totalRec=0;
+  for(const it of ITEMS){
+    const qty=getQty(it);
+    const cap=qty*it.capex, rec=qty*it.rec;
+    totalCap+=cap; totalRec+=rec;
+    if(!byCat[it.cat]) byCat[it.cat]={cap:0,rec:0};
+    byCat[it.cat].cap+=cap; byCat[it.cat].rec+=rec;
+  }
+  return {byCat,totalCap,totalRec,total:totalCap+totalRec*P.n_years};
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function sw(id){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelector(`[data-tab="${id}"]`).classList.add('active');
+  if(id==='tab-items') renderItems();
+  if(id==='tab-summary') renderSummary();
+}
+
+// ── INPUTS TAB ────────────────────────────────────────────────────────────────
+function renderInputsKpi(){
+  const {totalCap,totalRec,total}=calcTotals();
+  document.getElementById('staff-total').innerHTML=
+    `Total staff: <strong>${P.n_tech+P.n_eng+P.n_mgr}</strong> &nbsp;|&nbsp; Technicians: <strong>${P.n_tech}</strong> &nbsp;|&nbsp; Engineers: <strong>${P.n_eng}</strong> &nbsp;|&nbsp; Managers: <strong>${P.n_mgr}</strong>`;
+  document.getElementById('inp-kpi').innerHTML=[
+    {l:'Total CAPEX',       v:fmtE(totalCap),          u:'one-time investment',cls:'blue'},
+    {l:'Annual recurring',  v:fmtE(totalRec),           u:'per year (consumables, maintenance)',cls:'green'},
+    {l:'Over contract',     v:fmtE(total),              u:`CAPEX + recurring × ${P.n_years} yrs`,cls:'amber'},
+    {l:'Cost per tech',     v:fmtE(Math.round(totalCap/Math.max(1,P.n_tech))), u:'CAPEX / technician (ref.)',cls:'purple'},
+  ].map(k=>`<div class="kpi-card ${k.cls}"><div class="kpi-label">${k.l}</div>
+    <div class="kpi-value" style="font-size:${k.v.length>9?'16px':'22px'}">${k.v}</div>
+    <div class="kpi-unit">${k.u}</div></div>`).join('');
+}
+
+// ── ITEMS TABLE ───────────────────────────────────────────────────────────────
+function renderItems(){
+  const rows=[];
+  let curCat='';
+  rows.push(`<thead><tr>
+    <th style="width:340px">Item</th>
+    <th style="width:120px">Unit basis</th>
+    <th class="r" style="width:70px">Qty</th>
+    <th class="r" style="width:90px">Unit CAPEX</th>
+    <th class="r" style="width:100px">Total CAPEX</th>
+    <th class="r" style="width:90px">Unit Rec/yr</th>
+    <th class="r" style="width:100px">Annual Rec</th>
+    <th style="width:180px">Recurring note</th>
+  </tr></thead><tbody>`);
+
+  for(const it of ITEMS){
+    if(it.cat!==curCat){
+      curCat=it.cat;
+      const c=CATS[curCat];
+      rows.push(`<tr class="cat-row"><td colspan="8">
+        <div class="cat-label">
+          <div class="cat-strip" style="background:${c.color}"></div>
+          <span style="color:${c.color}">${curCat}</span>
+        </div></td></tr>`);
+    }
+    const qty=getQty(it);
+    const cap=qty*it.capex, rec=qty*it.rec;
+    const autoQty=evalQty(it.qtyExpr);
+    const isOverride=QTY_OVERRIDE[it.id]!==undefined;
+    rows.push(`<tr>
+      <td style="font-weight:500;font-size:12px">${it.name}</td>
+      <td style="font-size:11px;color:var(--tsec)">${it.qtyExpr.replace(/Math\.ceil\(([^)]+)\)/,(m,g)=>'⌈'+g+'⌉')}</td>
+      <td style="text-align:right">
+        <input type="number" class="${isOverride?'amber':'grey'}" value="${qty}" min="0" step="1"
+          oninput="QTY_OVERRIDE[${it.id}]=+this.value;this.className='amber';renderItems()"
+          title="Auto: ${autoQty}. Edit to override.">
+      </td>
+      <td style="text-align:right">
+        ${it.capex>0?`<input type="number" class="amber" value="${it.capex}" min="0" step="10"
+          oninput="ITEMS[${it.id}].capex=+this.value;renderItems()" style="width:80px">`:'<span style="color:var(--tter)">—</span>'}
+      </td>
+      <td class="total-cap">${cap>0?fmtE(cap):'—'}</td>
+      <td style="text-align:right">
+        ${it.rec>0?`<input type="number" class="amber" value="${it.rec}" min="0" step="5"
+          oninput="ITEMS[${it.id}].rec=+this.value;renderItems()" style="width:80px">`:'<span style="color:var(--tter)">—</span>'}
+      </td>
+      <td class="total-rec">${rec>0?fmtE(rec):'—'}</td>
+      <td class="rec-note">${it.recNote}</td>
+    </tr>`);
+  }
+
+  // Grand total row
+  const {totalCap,totalRec}=calcTotals();
+  rows.push(`<tr class="grand-row">
+    <td colspan="4" style="font-weight:700;text-align:right;color:var(--bluem)">TOTAL</td>
+    <td style="font-family:var(--mono);text-align:right;font-weight:700;color:var(--blue)">${fmtE(totalCap)}</td>
+    <td></td>
+    <td style="font-family:var(--mono);text-align:right;font-weight:700;color:var(--teal)">${fmtE(totalRec)}</td>
+    <td style="font-size:11px;color:var(--tsec)">× ${P.n_years} yrs = ${fmtE(totalRec*P.n_years)}</td>
+  </tr>`);
+  rows.push('</tbody>');
+  document.getElementById('items-tbl').innerHTML=rows.join('');
+}
+
+// ── SUMMARY ───────────────────────────────────────────────────────────────────
+function renderSummary(){
+  const {byCat,totalCap,totalRec,total}=calcTotals();
+  document.getElementById('sum-kpi').innerHTML=[
+    {l:'Total CAPEX',      v:fmtE(totalCap), u:'one-time investment', cls:'blue'},
+    {l:'Annual recurring', v:fmtE(totalRec), u:'consumables, maintenance, PPE, licences', cls:'green'},
+    {l:`Total over ${P.n_years} years`,v:fmtE(total), u:'CAPEX + recurring × contract duration', cls:'amber'},
+    {l:'Cost per tech',    v:fmtE(Math.round(totalCap/Math.max(1,P.n_tech))), u:'CAPEX / technician', cls:'purple'},
+  ].map(k=>`<div class="kpi-card ${k.cls}"><div class="kpi-label">${k.l}</div>
+    <div class="kpi-value" style="font-size:${k.v.length>9?'16px':'22px'}">${k.v}</div>
+    <div class="kpi-unit">${k.u}</div></div>`).join('');
+
+  let rows=`<thead><tr>
+    <th>Category</th>
+    <th class="r">CAPEX (€)</th>
+    <th class="r">% CAPEX</th>
+    <th class="r">Annual recurring (€)</th>
+    <th class="r">Recurring × ${P.n_years} yrs (€)</th>
+    <th class="r">Total over contract (€)</th>
+  </tr></thead><tbody>`;
+  for(const [cat,v] of Object.entries(byCat)){
+    const c=CATS[cat];
+    const pct=totalCap>0?Math.round(v.cap/totalCap*100):0;
+    const recTot=v.rec*P.n_years;
+    rows+=`<tr>
+      <td><span class="type-pill" style="background:${c.fill};color:${c.color};border:1px solid ${c.color}40">${cat}</span></td>
+      <td class="r bold">${fmtE(v.cap)}</td>
+      <td class="r" style="color:var(--tsec)">${pct}%</td>
+      <td class="r" style="color:var(--teal)">${v.rec>0?fmtE(v.rec):'—'}</td>
+      <td class="r" style="color:var(--teal)">${v.rec>0?fmtE(recTot):'—'}</td>
+      <td class="r bold">${fmtE(v.cap+recTot)}</td>
+    </tr>`;
+  }
+  rows+=`</tbody><tfoot><tr class="grand">
+    <td class="bold">TOTAL</td>
+    <td class="r bold" style="color:var(--blue)">${fmtE(totalCap)}</td>
+    <td class="r" style="color:var(--tsec)">100%</td>
+    <td class="r bold" style="color:var(--teal)">${fmtE(totalRec)}</td>
+    <td class="r bold" style="color:var(--teal)">${fmtE(totalRec*P.n_years)}</td>
+    <td class="r bold" style="color:var(--blue)">${fmtE(total)}</td>
+  </tr></tfoot>`;
+  document.getElementById('sum-tbl').innerHTML=rows;
+}
+
+// ── MASTER UPDATE ─────────────────────────────────────────────────────────────
+function update(){
+  readInputs();
+  renderInputsKpi();
+  if(document.getElementById('tab-items').classList.contains('active')) renderItems();
+  if(document.getElementById('tab-summary').classList.contains('active')) renderSummary();
+}
+
+// also update contract years live
+document.getElementById('n_years').addEventListener('input', function(){P.n_years=+this.value||1;update();});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+update();
+</script>
+</body>
+</html>

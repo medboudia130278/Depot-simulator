@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Depot — Track Vehicles OPEX v1</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0F172A;--panel:#1E293B;--surface:#F8FAFC;--surf2:#F1F5F9;
+  --border:#E2E8F0;--border2:#CBD5E1;
+  --text:#0F172A;--tsec:#475569;--tter:#94A3B8;
+  --blue:#1D4ED8;--bluel:#DBEAFE;--bluem:#1E3A8A;
+  --amber:#B45309;--amberl:#FEF3C7;
+  --green:#065F46;--greenl:#D1FAE5;
+  --red:#991B1B;--redl:#FEE2E2;
+  --purple:#4C1D95;--purplel:#EDE9FE;
+  --teal:#0F766E;--teall:#CCFBF1;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --r:8px;--rl:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--surface);color:var(--text);font-size:14px;min-height:100vh}
+/* HEADER */
+.hdr{background:var(--bg);color:#fff;padding:0 24px;display:flex;align-items:center;height:56px;gap:16px;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--bluem)}
+.hdr-logo{font-family:var(--mono);font-size:13px;font-weight:500;color:#93C5FD}
+.hdr-title{font-size:13px;color:#94A3B8;font-weight:300}
+.hdr-sp{flex:1}
+.hdr-badge{font-family:var(--mono);font-size:10px;background:var(--bluem);color:#93C5FD;padding:3px 8px;border-radius:4px}
+/* TABS */
+.tabs{background:var(--panel);border-bottom:1px solid var(--bluem);display:flex;padding:0 20px;gap:4px;position:sticky;top:56px;z-index:99}
+.tab{font-family:var(--sans);font-size:12px;font-weight:500;color:#94A3B8;padding:12px 16px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab.active{color:#93C5FD;border-bottom-color:#3B82F6}
+.pane{display:none;padding:24px;max-width:1280px;margin:0 auto}
+.pane.active{display:block}
+/* CARDS */
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--rl);padding:20px;margin-bottom:16px}
+.card-hdr{font-size:11px;font-weight:600;color:var(--tsec);letter-spacing:.07em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.cdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+/* FORM */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.fg label{font-size:11px;font-weight:500;color:var(--tsec)}
+.fg input,.fg select{font-family:var(--mono);font-size:13px;padding:7px 10px;border:1.5px solid var(--border2);border-radius:6px;background:var(--amberl);color:var(--amber);font-weight:500;outline:none;transition:border .15s}
+.fg input:focus{border-color:#F59E0B;box-shadow:0 0 0 2px rgba(245,158,11,.15)}
+.fg .hint{font-size:10px;color:var(--tter);line-height:1.4}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.row4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
+@media(max-width:750px){.row2,.row3,.row4{grid-template-columns:1fr}}
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:700px){.kpi-row{grid-template-columns:1fr 1fr}}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.blue::before{background:var(--blue)}.kpi.green::before{background:#10B981}
+.kpi.amber::before{background:#F59E0B}.kpi.purple::before{background:#7C3AED}
+.kpi.teal::before{background:var(--teal)}
+.kpi-l{font-size:10px;font-weight:500;color:var(--tsec);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.kpi-v{font-family:var(--mono);font-size:20px;font-weight:500;line-height:1}
+.kpi-u{font-family:var(--mono);font-size:10px;color:var(--tsec);margin-top:4px}
+/* VEHICLE CARDS */
+.veh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:16px}
+.veh-card{background:#fff;border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;transition:border .2s}
+.veh-card.inactive{opacity:.55}
+.veh-card-head{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.veh-type-badge{font-size:10px;font-weight:600;padding:3px 10px;border-radius:10px;white-space:nowrap}
+.veh-name-input{font-family:var(--sans);font-size:14px;font-weight:600;border:none;outline:none;background:transparent;flex:1;color:var(--text)}
+.veh-toggle{font-size:11px;font-weight:500;padding:4px 10px;border:1.5px solid var(--border2);border-radius:6px;cursor:pointer;background:white;color:var(--tsec);transition:all .15s;white-space:nowrap}
+.veh-toggle.on{border-color:#10B981;color:var(--green);background:var(--greenl)}
+.veh-toggle.off{border-color:#EF4444;color:var(--red);background:var(--redl)}
+.veh-del{font-size:11px;padding:4px 8px;border:1.5px solid #FECACA;border-radius:6px;cursor:pointer;background:white;color:var(--red);transition:all .15s}
+.veh-del:hover{background:var(--redl)}
+.veh-body{padding:16px}
+.veh-section{font-size:10px;font-weight:600;color:var(--tsec);letter-spacing:.07em;text-transform:uppercase;margin:12px 0 8px;display:flex;align-items:center;gap:6px}
+.veh-section::after{content:'';flex:1;height:1px;background:var(--border)}
+.formula-pill{font-family:var(--mono);font-size:10px;background:var(--surf2);color:var(--tsec);padding:4px 10px;border-radius:4px;margin-top:6px;line-height:1.6}
+.formula-pill .hi{color:var(--blue);font-weight:500}
+.formula-pill .gr{color:var(--green)}
+.formula-pill .te{color:var(--teal)}
+.water-section{background:var(--teall);border-radius:8px;padding:14px;margin-top:10px;border:1px solid #99F6E4}
+.water-section-title{font-size:10px;font-weight:600;color:var(--teal);letter-spacing:.07em;text-transform:uppercase;margin-bottom:10px}
+/* ADD VEHICLE */
+.add-veh-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;padding:12px 16px;background:var(--bluel);border-radius:8px;border:1px solid #BFDBFE}
+.add-veh-bar label{font-size:12px;font-weight:500;color:var(--bluem)}
+.add-veh-btn{font-size:11px;font-weight:500;padding:6px 14px;border:1.5px solid #93C5FD;border-radius:6px;cursor:pointer;background:white;color:var(--blue);transition:all .15s;white-space:nowrap}
+.add-veh-btn:hover{background:var(--bluel);border-color:var(--blue)}
+/* RESULTS TABLE */
+.res-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.res-tbl th{background:var(--surf2);padding:9px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--tsec);letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid var(--border);white-space:nowrap}
+.res-tbl th.r{text-align:right}
+.res-tbl td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.res-tbl tr:last-child td{border-bottom:none}
+.res-tbl tr:hover td{background:#F8FAFC}
+.res-tbl .r{font-family:var(--mono);text-align:right}
+.res-tbl .bold{font-weight:600}
+.res-tbl .grand td{background:var(--bluel);font-weight:700;border-top:2px solid var(--border2);font-size:13px}
+.res-tbl .fuel-col{color:var(--amber)}
+.res-tbl .water-col{color:var(--teal)}
+.res-tbl .total-col{color:var(--blue);font-weight:700}
+/* BREAKDOWN */
+.breakdown{background:var(--surf2);border-radius:8px;padding:14px;font-size:11px;color:var(--tsec);line-height:1.8;font-family:var(--mono);margin-top:10px}
+.breakdown .hl{color:var(--blue);font-weight:500}
+.breakdown .hw{color:var(--teal);font-weight:500}
+/* PRINT */
+.print-btn{font-size:12px;font-weight:500;padding:8px 18px;border:1.5px solid var(--border2);border-radius:6px;cursor:pointer;background:white;color:var(--text);transition:all .15s;float:right}
+.print-btn:hover{background:var(--bg);color:white;border-color:var(--bg)}
+.note-box{font-size:11px;color:var(--tter);font-style:italic;padding:10px 14px;background:var(--surf2);border-radius:6px;border:1px solid var(--border);margin-top:8px;line-height:1.6}
+.sec-title{font-size:10px;font-weight:600;color:var(--tsec);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+@media print{.tabs,.hdr,.print-btn,.add-veh-bar,.veh-del,.veh-toggle{display:none!important}.pane{display:block!important;padding:12px}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <span class="hdr-logo">◼ DEPOT</span>
+  <span class="hdr-title">Track Maintenance Vehicles — OPEX Estimator</span>
+  <div class="hdr-sp"></div>
+  <span class="hdr-badge">Created by Mohamed BOUDIA</span>
+</div>
+<div class="tabs">
+  <button class="tab active" data-tab="pane-global" onclick="swTab('pane-global')">① Global Parameters</button>
+  <button class="tab" data-tab="pane-vehicles" onclick="swTab('pane-vehicles')">② Vehicles</button>
+  <button class="tab" data-tab="pane-results" onclick="swTab('pane-results')">③ Results</button>
+</div>
+
+<!-- ① GLOBAL PARAMETERS -->
+<div id="pane-global" class="pane active">
+  <div class="row2">
+    <div class="card">
+      <div class="card-hdr"><div class="cdot" style="background:#3B82F6"></div>Line & Project</div>
+      <div class="row2">
+        <div class="fg">
+          <label>Line length (km)</label>
+          <input type="number" id="g_line" value="35" min="1" max="2000" step="1" oninput="update()">
+          <span class="hint">Total track length maintained. Drives all km-based calculations.</span>
+        </div>
+        <div class="fg">
+          <label>Contract duration (years)</label>
+          <input type="number" id="g_years" value="10" min="1" max="30" step="1" oninput="update()">
+          <span class="hint">Used for total cost over contract.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="cdot" style="background:#F59E0B"></div>Unit Prices</div>
+      <div class="row2">
+        <div class="fg">
+          <label>Diesel fuel price (€/L)</label>
+          <input type="number" id="g_fuel" value="1.35" min="0.5" max="5" step="0.01" oninput="update()">
+          <span class="hint">Local depot supply price incl. taxes.</span>
+        </div>
+        <div class="fg">
+          <label>Industrial water price (€/m³)</label>
+          <input type="number" id="g_water" value="3.50" min="0.1" max="20" step="0.1" oninput="update()">
+          <span class="hint">Track cleaning vehicles only. Industrial supply rate.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="kpi-row" id="global-kpi"></div>
+  <div class="card">
+    <div class="card-hdr"><div class="cdot" style="background:#7C3AED"></div>Calculation model — how it works</div>
+    <div class="row2">
+      <div>
+        <div class="sec-title">Fuel (per vehicle per year)</div>
+        <div class="breakdown">
+<span class="hl">Working fuel</span>  = (L_line ÷ working_speed) × passes/yr × L/h × qty
+<span class="hl">Transit fuel</span>  = (transit_km ÷ 100) × L/100km × passes/yr × qty
+<span class="hl">Total fuel (L)</span> = working_fuel + transit_fuel
+<span class="hl">Fuel cost (€)</span>  = total_fuel × fuel_price_per_L
+        </div>
+      </div>
+      <div>
+        <div class="sec-title">Water — cleaning vehicles only</div>
+        <div class="breakdown">
+<span class="hw">Water (L/yr)</span>   = L_line × passes/yr × L_water/km × qty
+<span class="hw">Water (m³/yr)</span>  = water_L ÷ 1000
+<span class="hw">Water cost (€)</span> = water_m3 × price_per_m3
+
+<span style="color:var(--tter)">Note: transit fuel uses L/100km (road mode).
+Working fuel uses L/h × (L_line ÷ speed).
+Speed is the operational working speed, not transit.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ② VEHICLES -->
+<div id="pane-vehicles" class="pane">
+  <div class="add-veh-bar">
+    <label>Add vehicle:</label>
+    <button class="add-veh-btn" onclick="addVehicle('rail-road')">+ Rail-road vehicle</button>
+    <button class="add-veh-btn" onclick="addVehicle('cleaning')">+ Track cleaning vehicle</button>
+    <button class="add-veh-btn" onclick="addVehicle('grinding')">+ Rail grinding vehicle</button>
+    <button class="add-veh-btn" onclick="addVehicle('other')">+ Other / custom</button>
+  </div>
+  <div class="veh-grid" id="veh-grid"></div>
+</div>
+
+<!-- ③ RESULTS -->
+<div id="pane-results" class="pane">
+  <button class="print-btn" onclick="window.print()">⬇ Print / PDF</button>
+  <div class="kpi-row" id="res-kpi"></div>
+  <div class="card">
+    <div class="card-hdr"><div class="cdot" style="background:#10B981"></div>Annual OPEX by vehicle</div>
+    <table class="res-tbl" id="res-tbl"></table>
+  </div>
+  <div class="note-box">
+    All values are estimates based on the parameters entered. Fuel consumption figures are derived from industry REX data (UIC, Network Rail, SNCF publications).
+    Validate against actual vehicle spec sheets and local operating conditions. Prices in EUR.
+  </div>
+</div>
+
+<script>
+// ── GLOBAL STATE ──────────────────────────────────────────────────────────────
+const G = {line:35, years:10, fuel:1.35, water:3.50};
+
+let nextId = 1;
+const VEHICLES = [];
+
+// ── TYPE CONFIG ───────────────────────────────────────────────────────────────
+const VTYPES = {
+  'rail-road': {
+    label:'Rail-road vehicle', color:'#1D4ED8', fill:'#DBEAFE',
+    defaults:{
+      qty:1, passes:52, transit_km:15,
+      transit_l100:26, work_speed:35, work_lh:14,
+      has_water:false, water_l_km:0,
+    },
+    hint:'Weekly inspection passes · Ref: Unimog U400 / Zagro GBM / Robel BAMOWAG',
+  },
+  'cleaning': {
+    label:'Track cleaning vehicle', color:'#0F766E', fill:'#CCFBF1',
+    defaults:{
+      qty:1, passes:3, transit_km:20,
+      transit_l100:38, work_speed:6, work_lh:105,
+      has_water:true, water_l_km:1800,
+    },
+    hint:'Ballast/rail jet cleaning · Ref: Loram RailVac / Harsco RGS Cleaner / Plasser & Theurer',
+  },
+  'grinding': {
+    label:'Rail grinding vehicle', color:'#B45309', fill:'#FEF3C7',
+    defaults:{
+      qty:1, passes:1, transit_km:25,
+      transit_l100:55, work_speed:3, work_lh:290,
+      has_water:false, water_l_km:0,
+    },
+    hint:'Corrugation removal · Ref: Speno RR series / Loram C-series / Schweerbau GMAK',
+  },
+  'other': {
+    label:'Custom vehicle', color:'#374151', fill:'#F1F5F9',
+    defaults:{
+      qty:1, passes:12, transit_km:10,
+      transit_l100:30, work_speed:20, work_lh:50,
+      has_water:false, water_l_km:0,
+    },
+    hint:'Custom vehicle — adjust all parameters to match actual spec',
+  },
+};
+
+// ── CALC ──────────────────────────────────────────────────────────────────────
+function calcVehicle(v){
+  if(!v.active) return {fuel_work:0,fuel_transit:0,fuel_total:0,fuel_cost:0,water_l:0,water_m3:0,water_cost:0,total:0};
+  const fuel_work = (G.line / v.work_speed) * v.passes * v.work_lh * v.qty;
+  const fuel_transit = (v.transit_km / 100) * v.transit_l100 * v.passes * v.qty;
+  const fuel_total = fuel_work + fuel_transit;
+  const fuel_cost = fuel_total * G.fuel;
+  const water_l = v.has_water ? G.line * v.passes * v.water_l_km * v.qty : 0;
+  const water_m3 = water_l / 1000;
+  const water_cost = water_m3 * G.water;
+  const total = fuel_cost + water_cost;
+  return {fuel_work,fuel_transit,fuel_total,fuel_cost,water_l,water_m3,water_cost,total};
+}
+
+function calcAll(){
+  return VEHICLES.map(v=>({...v, calc:calcVehicle(v)}));
+}
+
+// ── FORMAT ────────────────────────────────────────────────────────────────────
+function fE(n){return n===0?'—':'€'+Math.round(n).toLocaleString('en-US');}
+function fN(n,dec=0){return Math.round(n*Math.pow(10,dec))/Math.pow(10,dec);}
+function fL(n){return n===0?'—':Math.round(n).toLocaleString('en-US')+' L';}
+function fM(n){return n===0?'—':fN(n,1).toLocaleString('en-US')+' m³';}
+
+// ── ADD / REMOVE VEHICLE ──────────────────────────────────────────────────────
+function addVehicle(type){
+  const cfg = VTYPES[type];
+  VEHICLES.push({
+    id: nextId++,
+    type, name: cfg.label,
+    active: true,
+    ...cfg.defaults,
+  });
+  renderVehicles();
+  update();
+}
+
+function removeVehicle(id){
+  const idx = VEHICLES.findIndex(v=>v.id===id);
+  if(idx!==-1) VEHICLES.splice(idx,1);
+  renderVehicles();
+  update();
+}
+
+function toggleVehicle(id){
+  const v = VEHICLES.find(v=>v.id===id);
+  if(v){ v.active=!v.active; renderVehicles(); update(); }
+}
+
+function setVField(id, field, val){
+  const v = VEHICLES.find(v=>v.id===id);
+  if(v){ v[field]=typeof v[field]==='boolean'?!!val:(isNaN(+val)?val:+val); update(); }
+}
+
+// ── RENDER VEHICLES ───────────────────────────────────────────────────────────
+function renderVehicles(){
+  const grid = document.getElementById('veh-grid');
+  if(!VEHICLES.length){
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tter);font-size:13px">No vehicles yet — use the buttons above to add vehicles to your fleet.</div>';
+    return;
+  }
+  grid.innerHTML = VEHICLES.map(v=>{
+    const cfg = VTYPES[v.type];
+    const c = calcVehicle(v);
+    return `
+<div class="veh-card${v.active?'':' inactive'}">
+  <div class="veh-card-head">
+    <span class="veh-type-badge" style="background:${cfg.fill};color:${cfg.color}">${cfg.label}</span>
+    <input class="veh-name-input" value="${v.name}" oninput="setVField(${v.id},'name',this.value)">
+    <button class="veh-toggle ${v.active?'on':'off'}" onclick="toggleVehicle(${v.id})">${v.active?'Active':'Inactive'}</button>
+    <button class="veh-del" onclick="removeVehicle(${v.id})" title="Remove">✕</button>
+  </div>
+  <div class="veh-body">
+    <div style="font-size:10px;color:var(--tter);font-style:italic;margin-bottom:10px">${cfg.hint}</div>
+
+    <div class="veh-section">Fleet</div>
+    <div class="row2">
+      <div class="fg"><label>Number of units</label>
+        <input type="number" value="${v.qty}" min="1" max="20" oninput="setVField(${v.id},'qty',this.value)">
+      </div>
+      <div class="fg"><label>Passes per year</label>
+        <input type="number" value="${v.passes}" min="1" max="365" oninput="setVField(${v.id},'passes',this.value)">
+        <span class="hint">Number of full-line passes per year</span>
+      </div>
+    </div>
+
+    <div class="veh-section">Transit (road/track travel to line)</div>
+    <div class="row2">
+      <div class="fg"><label>Transit distance per pass (km)</label>
+        <input type="number" value="${v.transit_km}" min="0" max="500" oninput="setVField(${v.id},'transit_km',this.value)">
+        <span class="hint">Round-trip from depot to line start</span>
+      </div>
+      <div class="fg"><label>Transit fuel consumption (L/100km)</label>
+        <input type="number" value="${v.transit_l100}" min="1" max="200" step="0.5" oninput="setVField(${v.id},'transit_l100',this.value)">
+        <span class="hint">Road or transit-mode consumption</span>
+      </div>
+    </div>
+
+    <div class="veh-section">Working mode (on track, operational)</div>
+    <div class="row2">
+      <div class="fg"><label>Working speed (km/h)</label>
+        <input type="number" value="${v.work_speed}" min="0.5" max="120" step="0.5" oninput="setVField(${v.id},'work_speed',this.value)">
+        <span class="hint">Operational speed while working — not transit speed</span>
+      </div>
+      <div class="fg"><label>Working fuel consumption (L/h)</label>
+        <input type="number" value="${v.work_lh}" min="1" max="600" step="1" oninput="setVField(${v.id},'work_lh',this.value)">
+        <span class="hint">Engine + working equipment combined (REX value)</span>
+      </div>
+    </div>
+
+    ${v.has_water?`
+    <div class="water-section">
+      <div class="water-section-title">Water consumption (cleaning mode)</div>
+      <div class="row2">
+        <div class="fg"><label>Water consumption (L/km treated)</label>
+          <input type="number" value="${v.water_l_km}" min="100" max="10000" step="100" oninput="setVField(${v.id},'water_l_km',this.value)">
+          <span class="hint">Typical range: 800–3500 L/km. Depends on pressure & spray width.</span>
+        </div>
+        <div class="fg" style="pointer-events:none">
+          <label>Annual water volume</label>
+          <input type="text" value="${fM(c.water_m3)}" readonly style="background:var(--teall);color:var(--teal);border-color:#99F6E4;font-weight:600">
+        </div>
+      </div>
+    </div>`:''}
+
+    <div class="formula-pill" style="margin-top:12px">
+      <span class="hi">Fuel/yr:</span> (${G.line}km ÷ ${v.work_speed}km/h) × ${v.passes}p × ${v.work_lh}L/h × ${v.qty}u = <strong>${Math.round((G.line/v.work_speed)*v.passes*v.work_lh*v.qty).toLocaleString('en-US')} L</strong> working
+      + <strong>${Math.round((v.transit_km/100)*v.transit_l100*v.passes*v.qty).toLocaleString('en-US')} L</strong> transit
+      = <strong class="hi">${fL(c.fuel_total)}</strong> → <strong class="hi">${fE(c.fuel_cost)}</strong>
+      ${v.has_water?`<br><span class="te">Water/yr:</span> ${G.line}km × ${v.passes}p × ${v.water_l_km}L/km × ${v.qty}u = <strong class="te">${fM(c.water_m3)}</strong> → <strong class="te">${fE(c.water_cost)}</strong>`:''}
+    </div>
+  </div>
+</div>`;
+  }).join('');
+}
+
+// ── RENDER GLOBAL KPI ─────────────────────────────────────────────────────────
+function renderGlobalKpi(){
+  const all = calcAll();
+  const totalFuelCost = all.reduce((s,v)=>s+v.calc.fuel_cost,0);
+  const totalWaterCost = all.reduce((s,v)=>s+v.calc.water_cost,0);
+  const totalAnnual = totalFuelCost + totalWaterCost;
+  const totalFuelL = all.reduce((s,v)=>s+v.calc.fuel_total,0);
+
+  document.getElementById('global-kpi').innerHTML=[
+    {l:'Total annual fuel cost',   v:fE(totalFuelCost),         u:`${Math.round(totalFuelL).toLocaleString('en-US')} L/yr across all active vehicles`,cls:'amber'},
+    {l:'Total annual water cost',  v:fE(totalWaterCost),        u:'cleaning vehicles only',cls:'teal'},
+    {l:'Total annual OPEX',        v:fE(totalAnnual),           u:'fuel + water combined',cls:'blue'},
+    {l:`Over ${G.years} years`,    v:fE(totalAnnual*G.years),   u:'total contract OPEX (no inflation)',cls:'purple'},
+  ].map(k=>`<div class="kpi ${k.cls}">
+    <div class="kpi-l">${k.l}</div>
+    <div class="kpi-v" style="font-size:${k.v.length>9?'16px':'20px'}">${k.v}</div>
+    <div class="kpi-u">${k.u}</div>
+  </div>`).join('');
+}
+
+// ── RENDER RESULTS ────────────────────────────────────────────────────────────
+function renderResults(){
+  const all = calcAll();
+  const totalFuelL = all.reduce((s,v)=>s+v.calc.fuel_total,0);
+  const totalFuelCost = all.reduce((s,v)=>s+v.calc.fuel_cost,0);
+  const totalWaterM3 = all.reduce((s,v)=>s+v.calc.water_m3,0);
+  const totalWaterCost = all.reduce((s,v)=>s+v.calc.water_cost,0);
+  const totalAnnual = totalFuelCost + totalWaterCost;
+
+  document.getElementById('res-kpi').innerHTML=[
+    {l:'Total annual OPEX',  v:fE(totalAnnual),            u:'all active vehicles',cls:'blue'},
+    {l:'Fuel cost/yr',       v:fE(totalFuelCost),          u:`${Math.round(totalFuelL).toLocaleString('en-US')} L total`,cls:'amber'},
+    {l:'Water cost/yr',      v:fE(totalWaterCost),         u:`${fN(totalWaterM3,1)} m³ total`,cls:'teal'},
+    {l:`Total over ${G.years} yrs`, v:fE(totalAnnual*G.years), u:'no inflation factor',cls:'purple'},
+  ].map(k=>`<div class="kpi ${k.cls}">
+    <div class="kpi-l">${k.l}</div>
+    <div class="kpi-v" style="font-size:${k.v.length>9?'16px':'20px'}">${k.v}</div>
+    <div class="kpi-u">${k.u}</div>
+  </div>`).join('');
+
+  const rows = all.map(v=>{
+    const cfg = VTYPES[v.type];
+    const c = v.calc;
+    const status = v.active ? '' : ' style="opacity:.45"';
+    return `<tr${status}>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="background:${cfg.fill};color:${cfg.color};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">${v.type}</span>
+          <strong>${v.name}</strong>
+          ${!v.active?'<span style="font-size:9px;color:var(--tter);font-style:italic">inactive</span>':''}
+        </div>
+      </td>
+      <td class="r">${v.qty}</td>
+      <td class="r">${v.passes}</td>
+      <td class="r fuel-col">${fL(c.fuel_total)}</td>
+      <td class="r fuel-col bold">${fE(c.fuel_cost)}</td>
+      <td class="r water-col">${c.water_m3>0?fM(c.water_m3):'—'}</td>
+      <td class="r water-col bold">${c.water_cost>0?fE(c.water_cost):'—'}</td>
+      <td class="r total-col">${fE(c.total)}</td>
+      <td class="r" style="color:var(--tsec)">${fE(c.total*G.years)}</td>
+    </tr>`;
+  });
+
+  document.getElementById('res-tbl').innerHTML=`
+  <thead><tr>
+    <th>Vehicle</th>
+    <th class="r">Units</th>
+    <th class="r">Passes/yr</th>
+    <th class="r" style="color:var(--amber)">Fuel (L/yr)</th>
+    <th class="r" style="color:var(--amber)">Fuel cost/yr</th>
+    <th class="r" style="color:var(--teal)">Water (m³/yr)</th>
+    <th class="r" style="color:var(--teal)">Water cost/yr</th>
+    <th class="r" style="color:var(--blue)">Total OPEX/yr</th>
+    <th class="r">× ${G.years} yrs</th>
+  </tr></thead>
+  <tbody>${rows.join('')}</tbody>
+  <tfoot><tr class="grand">
+    <td colspan="3" class="bold" style="text-align:right">TOTAL (active vehicles)</td>
+    <td class="r fuel-col">${fL(totalFuelL)}</td>
+    <td class="r fuel-col bold">${fE(totalFuelCost)}</td>
+    <td class="r water-col">${fM(totalWaterM3)}</td>
+    <td class="r water-col bold">${fE(totalWaterCost)}</td>
+    <td class="r total-col">${fE(totalAnnual)}</td>
+    <td class="r total-col">${fE(totalAnnual*G.years)}</td>
+  </tr></tfoot>`;
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function swTab(id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelector(`[data-tab="${id}"]`).classList.add('active');
+  if(id==='pane-vehicles') renderVehicles();
+  if(id==='pane-results') renderResults();
+}
+
+// ── MASTER UPDATE ─────────────────────────────────────────────────────────────
+function update(){
+  G.line  = +document.getElementById('g_line').value  || 35;
+  G.years = +document.getElementById('g_years').value || 10;
+  G.fuel  = +document.getElementById('g_fuel').value  || 1.35;
+  G.water = +document.getElementById('g_water').value || 3.50;
+
+  renderGlobalKpi();
+  if(document.getElementById('pane-vehicles').classList.contains('active')) renderVehicles();
+  if(document.getElementById('pane-results').classList.contains('active')) renderResults();
+}
+
+// ── INIT — load 3 default vehicles ────────────────────────────────────────────
+addVehicle('rail-road');
+addVehicle('cleaning');
+addVehicle('grinding');
+update();
+</script>
+</body>
+</html>

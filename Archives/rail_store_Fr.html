@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rail Depot — Store Pre-Sizing Model v8</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0F172A; --panel:#1E293B; --panel2:#273549;
+  --surface:#F8FAFC; --surf2:#F1F5F9;
+  --border:#E2E8F0; --border2:#CBD5E1;
+  --text:#0F172A; --tsec:#475569; --tter:#94A3B8;
+  --blue:#1D4ED8; --blue-l:#DBEAFE; --blue-d:#1E3A8A;
+  --amber:#B45309; --amber-l:#FEF3C7;
+  --green:#065F46; --green-l:#D1FAE5;
+  --red:#991B1B; --red-l:#FEE2E2;
+  --purple:#4C1D95; --purple-l:#EDE9FE;
+  --pink:#831843; --pink-l:#FCE7F3;
+  --yellow:#854D0E; --yellow-l:#FEF9C3;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --radius:8px; --radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--surface);color:var(--text);font-size:14px;min-height:100vh}
+
+/* HEADER */
+.app-header{background:var(--bg);color:#fff;padding:0 24px;display:flex;align-items:center;height:56px;gap:16px;position:sticky;top:0;z-index:100;border-bottom:1px solid #1E3A8A}
+.app-logo{font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:.02em;color:#93C5FD;white-space:nowrap}
+.app-title{font-size:13px;color:#94A3B8;font-weight:300}
+.header-spacer{flex:1}
+.app-badge{font-family:var(--mono);font-size:10px;background:#1E3A8A;color:#93C5FD;padding:3px 8px;border-radius:4px}
+
+/* TABS */
+.tabs-nav{background:var(--panel);border-bottom:1px solid #1E3A8A;display:flex;padding:0 20px;gap:4px;position:sticky;top:56px;z-index:99}
+.tab-btn{font-family:var(--sans);font-size:12px;font-weight:500;color:#94A3B8;padding:12px 16px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;letter-spacing:.01em}
+.tab-btn:hover{color:#CBD5E1}
+.tab-btn.active{color:#93C5FD;border-bottom-color:#3B82F6}
+
+/* PANELS */
+.tab-panel{display:none;padding:24px;max-width:1200px;margin:0 auto}
+.tab-panel.active{display:block}
+
+/* SECTION */
+.section-title{font-size:11px;font-weight:600;color:var(--tsec);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px}
+.card-header{font-size:12px;font-weight:600;color:var(--tsec);letter-spacing:.06em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+@media(max-width:700px){.form-grid,.form-grid-3{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:500;color:var(--tsec)}
+.field input,.field select{font-family:var(--mono);font-size:13px;padding:7px 10px;border:1.5px solid var(--border2);border-radius:6px;background:var(--amber-l);color:var(--amber);font-weight:500;outline:none;transition:border .15s}
+.field input:focus,.field select:focus{border-color:#F59E0B;box-shadow:0 0 0 2px rgba(245,158,11,.15)}
+.field input[readonly]{background:var(--surf2);color:var(--tsec);border-color:var(--border);font-weight:400}
+.field .hint{font-size:10px;color:var(--tter);line-height:1.4}
+.unit-badge{font-family:var(--mono);font-size:10px;color:var(--tsec);background:var(--surf2);padding:2px 6px;border-radius:4px;white-space:nowrap}
+
+/* FAMILY TABLE */
+.fam-table{width:100%;border-collapse:collapse;font-size:12px}
+.fam-table th{background:var(--surf2);padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--tsec);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.fam-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.fam-table tr:last-child td{border-bottom:none}
+.fam-table tr:nth-child(even) td{background:#FAFBFC}
+.fam-table input[type=number]{font-family:var(--mono);font-size:12px;width:60px;padding:4px 6px;border:1.5px solid var(--border2);border-radius:4px;background:var(--amber-l);color:var(--amber);font-weight:500;text-align:right}
+.fam-table select{font-family:var(--sans);font-size:11px;padding:4px 6px;border:1.5px solid var(--border2);border-radius:4px;background:var(--amber-l);color:var(--text);min-width:120px}
+.type-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:12px;font-weight:500;white-space:nowrap}
+.share-total{background:var(--surf2);font-family:var(--mono);font-weight:600}
+.share-ok{background:var(--green-l);color:var(--green)}
+.share-err{background:var(--red-l);color:var(--red)}
+
+/* PROFILE BUTTONS */
+.profile-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.profile-btn{font-family:var(--sans);font-size:11px;font-weight:500;padding:6px 14px;border:1.5px solid var(--border2);border-radius:6px;cursor:pointer;background:white;color:var(--tsec);transition:all .15s}
+.profile-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+
+/* KPI CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:700px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
+.kpi-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-card.blue::before{background:var(--blue)}
+.kpi-card.green::before{background:#10B981}
+.kpi-card.amber::before{background:#F59E0B}
+.kpi-card.purple::before{background:#7C3AED}
+.kpi-label{font-size:10px;font-weight:500;color:var(--tsec);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.kpi-value{font-family:var(--mono);font-size:24px;font-weight:500;line-height:1}
+.kpi-unit{font-family:var(--mono);font-size:11px;color:var(--tsec);margin-top:4px}
+
+/* RESULTS TABLE */
+.res-table{width:100%;border-collapse:collapse;font-size:12px}
+.res-table th{padding:9px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--tsec);letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid var(--border);white-space:nowrap}
+.res-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.res-table tr:hover td{background:#F8FAFC}
+.res-table .num{font-family:var(--mono);text-align:right}
+.res-table .rec{font-family:var(--mono);font-weight:600;text-align:right;color:var(--blue)}
+
+/* SYNTHESIS */
+.synth-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+@media(max-width:700px){.synth-grid{grid-template-columns:1fr 1fr}}
+.synth-item{background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+.synth-label{font-size:10px;color:var(--tsec);margin-bottom:4px;font-weight:500}
+.synth-val{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--text)}
+.synth-sub{font-size:10px;color:var(--tter);margin-top:2px}
+
+/* LAYOUT */
+.layout-controls{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;padding:14px 16px;background:#fff;border:1px solid var(--border);border-radius:var(--radius)}
+.layout-controls .field{flex:0 0 auto}
+.layout-controls .field input{width:80px;background:#fff}
+.layout-workspace{display:grid;grid-template-columns:1fr 220px;gap:16px}
+@media(max-width:900px){.layout-workspace{grid-template-columns:1fr}}
+.svg-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:auto;position:relative}
+.svg-note{font-size:10px;color:var(--tter);padding:6px 12px;text-align:right}
+#layout-svg{display:block;cursor:default;font-family:var(--sans)}
+#layout-svg .zone{cursor:grab}
+#layout-svg .zone:active{cursor:grabbing}
+#layout-svg .resize-handle{cursor:se-resize}
+
+/* ZONE LIST */
+.zone-list{display:flex;flex-direction:column;gap:8px}
+.zone-item{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;border-left:4px solid transparent}
+.zone-item-name{font-size:11px;font-weight:500;margin-bottom:4px}
+.zone-item-detail{font-family:var(--mono);font-size:10px;color:var(--tsec)}
+.zone-check{font-size:11px;padding:10px 12px;border-radius:var(--radius);background:var(--surf2);border:1px solid var(--border);margin-top:8px}
+.check-label{color:var(--tsec);margin-bottom:4px;font-size:10px;font-weight:500}
+.check-val{font-family:var(--mono);font-size:14px;font-weight:600}
+.check-ok{color:var(--green)}
+.check-warn{color:#B45309}
+.check-err{color:var(--red)}
+
+/* UTIL */
+.alert{padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:12px}
+.alert-warn{background:var(--amber-l);color:var(--amber);border:1px solid #FDE68A}
+.alert-err{background:var(--red-l);color:var(--red);border:1px solid #FECACA}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:800px){.two-col{grid-template-columns:1fr}}
+.export-btn{font-family:var(--sans);font-size:12px;font-weight:500;padding:8px 18px;border:1.5px solid var(--border2);border-radius:6px;cursor:pointer;background:white;color:var(--text);float:right;transition:all .15s}
+.export-btn:hover{background:var(--bg);color:white;border-color:var(--bg)}
+@media print{.tabs-nav,.app-header,.export-btn,.layout-controls,.zone-list{display:none!important}.tab-panel{display:block!important;padding:16px}.app-header-print{display:block}}
+
+/* HELP TAB */
+.help-wrap{max-width:900px}
+.help-h1{font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px}
+.help-lead{font-size:13px;color:var(--tsec);line-height:1.7;margin-bottom:20px}
+.help-section{margin-bottom:28px}
+.help-section-title{font-size:12px;font-weight:600;color:var(--tsec);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:8px}
+.fcard{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:12px;overflow:hidden}
+.fcard-hdr{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;transition:background .12s}
+.fcard-hdr:hover{background:var(--surf2)}
+.fcard-hdr-title{font-size:13px;font-weight:600;flex:1}
+.fcard-hdr-icon{font-size:12px;color:var(--tsec);transition:transform .15s}
+.fcard-hdr.open .fcard-hdr-icon{transform:rotate(90deg)}
+.fcard-body{padding:16px;border-top:1px solid var(--border);display:none}
+.fcard-body.open{display:block}
+.formula-box{background:#0F172A;color:#E2E8F0;font-family:var(--mono);font-size:12px;padding:16px 20px;border-radius:var(--radius);line-height:2;margin:12px 0;overflow-x:auto}
+.formula-box .hi-y{color:#FCD34D} /* amber — input param */
+.formula-box .hi-b{color:#93C5FD} /* blue — formula */
+.formula-box .hi-g{color:#86EFAC} /* green — result */
+.formula-box .hi-r{color:#FCA5A5} /* red — warning */
+.formula-box .cm{color:#64748B;font-style:italic}
+.step-list{counter-reset:steps;list-style:none;padding:0;display:flex;flex-direction:column;gap:10px}
+.step-list li{counter-increment:steps;display:flex;gap:12px;align-items:flex-start;font-size:13px;line-height:1.6}
+.step-list li::before{content:counter(steps);min-width:24px;height:24px;background:var(--blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;margin-top:1px}
+.param-table{width:100%;border-collapse:collapse;font-size:12px}
+.param-table th{background:var(--surf2);padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--tsec);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
+.param-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.5}
+.param-table tr:last-child td{border-bottom:none}
+.param-table tr:nth-child(even) td{background:#FAFBFC}
+.sym{font-family:var(--mono);font-size:11px;font-weight:500;background:var(--surf2);padding:2px 6px;border-radius:4px;white-space:nowrap;display:inline-block}
+.sym-amber{background:var(--amber-l);color:var(--amber)}
+.sym-blue{background:var(--blue-l);color:var(--blue-d)}
+.sym-green{background:var(--green-l);color:var(--green)}
+.type-table{width:100%;border-collapse:collapse;font-size:12px}
+.type-table th{background:var(--surf2);padding:9px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--tsec);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--border)}
+.type-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.5}
+.type-table tr:last-child td{border-bottom:none}
+.rack-svg-wrap{background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:12px 0;overflow-x:auto;text-align:center}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+@media(max-width:650px){.info-grid{grid-template-columns:1fr}}
+.info-box{background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+.info-box-label{font-size:10px;font-weight:600;color:var(--tsec);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.info-box p{font-size:12px;color:var(--text);line-height:1.6}
+
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <span class="app-logo">◼ RAIL DEPOT</span>
+  <span class="app-title">Store Pre-Sizing Model</span>
+  <div class="header-spacer"></div>
+  <span class="app-badge">v8 — 2026</span>
+</div>
+
+<div class="tabs-nav">
+  <button class="tab-btn active" data-tab="tab-inputs" onclick="switchTab('tab-inputs')">① Inputs</button>
+  <button class="tab-btn" data-tab="tab-assump" onclick="switchTab('tab-assump')">② Assumptions</button>
+  <button class="tab-btn" data-tab="tab-results" onclick="switchTab('tab-results')">③ Results</button>
+  <button class="tab-btn" data-tab="tab-layout" onclick="switchTab('tab-layout')">④ Layout 2D</button>
+  <button class="tab-btn" data-tab="tab-help" onclick="switchTab('tab-help')">⑤ Help</button>
+</div>
+
+<div id="tab-inputs" class="tab-panel active">
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot" style="background:#3B82F6"></div>Project Parameters</div>
+        <div id="proj-fields"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot" style="background:#10B981"></div>Storage Family Distribution</div>
+        <div class="section-title" style="margin-bottom:10px">Load system profile</div>
+        <div class="profile-btns" id="profile-btns"></div>
+        <div id="share-alert"></div>
+        <table class="fam-table" id="fam-table"></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tab-assump" class="tab-panel">
+  <div id="assump-content"></div>
+</div>
+
+<div id="tab-results" class="tab-panel">
+  <button class="export-btn" onclick="window.print()">⬇ Imprimer / PDF</button>
+  <div class="kpi-row" id="kpi-row"></div>
+  <div class="card">
+    <div class="card-header"><div class="card-dot" style="background:#1D4ED8"></div>Capacités par famille</div>
+    <table class="res-table"><thead id="res-thead"></thead><tbody id="res-tbody"></tbody></table>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-dot" style="background:#10B981"></div>Synthèse — Équipements à installer</div>
+    <div class="synth-grid" id="synth-grid"></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-dot" style="background:#7C3AED"></div>Géométrie rack palette (auto-calculée)</div>
+    <div class="form-grid-3" id="rack-geo"></div>
+  </div>
+</div>
+
+<div id="tab-layout" class="tab-panel">
+  <div class="layout-controls">
+    <div class="field">
+      <label>Largeur du magasin (m)</label>
+      <input type="number" id="bldg-W" value="36" min="10" max="200" step="1" oninput="updateBldg()">
+    </div>
+    <div class="field">
+      <label>Profondeur auto (m)</label>
+      <input type="number" id="bldg-H-disp" readonly>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap">
+      <button class="profile-btn" onclick="resetZones()">↺ Réinitialiser zones</button>
+      <button class="profile-btn" onclick="window.print()">⬇ Exporter PDF</button>
+    </div>
+    <div style="font-size:11px;color:var(--tsec);align-self:flex-end;max-width:220px;line-height:1.5">
+      Glisser pour déplacer · Poignée ▣ pour redimensionner · Grille 1m
+    </div>
+  </div>
+  <div class="layout-workspace">
+    <div class="svg-wrap">
+      <svg id="layout-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="svg-note">Schéma de principe — non contractuel · Grille 1m (trait fin) / 5m (trait fort)</div>
+    </div>
+    <div>
+      <div class="section-title" style="margin-bottom:10px">Zones du plan</div>
+      <div class="zone-list" id="zone-list"></div>
+      <div class="zone-check" id="area-check"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const FAM_NAMES = [
+  'Small parts / fasteners',
+  'Medium parts / cartons',
+  'Palletized heavy parts',
+  'Long indoor parts',
+  'Heavy / irregular parts',
+  'Sensitive / regulated',
+  'Tools / consumables',
+  'Repairables / rotables',
+];
+const TYPES = ['Shelving','Pallet racks','Cantilever','Floor storage','Dedicated area','Repairables'];
+const PROFILES = {
+  'Metro':      [.20,.15,.30,.05,.10,.05,.05,.10],
+  'Tram':       [.25,.20,.20,.05,.08,.05,.07,.10],
+  'APM':        [.25,.20,.20,.03,.07,.07,.08,.10],
+  'Heavy Rail': [.15,.15,.35,.08,.12,.03,.05,.07],
+};
+const TC = { // type colors
+  'Pallet racks':  {fill:'#DBEAFE',stroke:'#3B82F6',text:'#1D4ED8',css:'--blue-l'},
+  'Shelving':      {fill:'#D1FAE5',stroke:'#10B981',text:'#065F46',css:'--green-l'},
+  'Cantilever':    {fill:'#FEF3C7',stroke:'#F59E0B',text:'#92400E',css:'--amber-l'},
+  'Floor storage': {fill:'#FEE2E2',stroke:'#EF4444',text:'#991B1B',css:'--red-l'},
+  'Dedicated area':{fill:'#EDE9FE',stroke:'#7C3AED',text:'#4C1D95',css:'--purple-l'},
+  'Repairables':   {fill:'#FCE7F3',stroke:'#DB2777',text:'#831843',css:'--pink-l'},
+  'Non-storage':   {fill:'#E5E7EB',stroke:'#9CA3AF',text:'#374151',css:''},
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const P = {
+  S_workshop:6000, H_useful:6, N_trains:30, L_line:35,
+  fam_shares:[.20,.15,.30,.05,.10,.05,.05,.10],
+  fam_types:['Shelving','Pallet racks','Cantilever','Floor storage','Dedicated area','Shelving','Repairables','Repairables'],
+  k_store:.18, k_nostor:.35,
+  occ_pal:.80, occ_she:.80, occ_can:.75, occ_flo:.75, occ_ded:1.0,
+  eff_pal:.45, eff_she:.50, eff_can:.35, eff_flo:.65,
+  pal_w:1.20, pal_d:.80, pal_h:1.20,
+  clr_s:.075, clr_b:.100, clr_d:.100, clr_v:.200, clr_bt:.150, clr_tp:.300, pal_bay:2,
+  she_L:1.20, she_D:.50, she_H:2.20, she_lv:6,
+  can_a:.80, can_H:3.50, can_lv:4, can_bL:1.75,
+  flo_W:2.00, flo_D:2.00,
+  k_gr:.10,
+  bldg_W:36,
+};
+// Fix default fam_types
+P.fam_types = ['Shelving','Shelving','Pallet racks','Cantilever','Floor storage','Dedicated area','Shelving','Repairables'];
+
+let C = {}; // calculated
+let layoutZones = [];
+let bldg_H_m = 30;
+
+// ─── CALCULATION ─────────────────────────────────────────────────────────────
+function r1(x){return Math.round(x*10)/10}
+function r2(x){return Math.round(x*100)/100}
+function r4(x){return Math.round(x*10000)/10000}
+function ceil05(x){return Math.ceil(x*2)/2}
+function ceil1(x){return Math.ceil(x)}
+
+function recalc(){
+  C = {};
+  C.S_gross = r1(P.S_workshop * P.k_store);
+  C.S_nostor = r1(C.S_gross * P.k_nostor);
+  C.S_net = r1(C.S_gross - C.S_nostor);
+  C.bay_W = r4(2*P.pal_w + 2*P.clr_s + P.clr_b);
+  C.bay_D = r4(P.pal_d + P.clr_d);
+  C.a_pos = r4(C.bay_W * C.bay_D / P.pal_bay);
+  C.h_lev = r4(P.pal_h + P.clr_v);
+  C.N_lev = Math.max(1, Math.floor((P.H_useful - P.clr_bt - P.clr_tp) / C.h_lev));
+  C.h_frame = r2(P.clr_bt + C.N_lev * C.h_lev + P.clr_tp);
+  C.growth = 1 + P.k_gr;
+
+  const effOf = t => t==='Pallet racks'?P.eff_pal:t==='Shelving'?P.eff_she:t==='Cantilever'?P.eff_can:t==='Floor storage'?P.eff_flo:t==='Dedicated area'?1:(P.eff_pal+P.eff_flo)/2;
+  const occOf = t => t==='Pallet racks'?P.occ_pal:t==='Shelving'?P.occ_she:t==='Cantilever'?P.occ_can:t==='Floor storage'?P.occ_flo:t==='Dedicated area'?P.occ_ded:(P.occ_pal+P.occ_flo)/2;
+  const convOf = t => t==='Pallet racks'?C.a_pos:t==='Shelving'?P.she_D:t==='Cantilever'?2*P.can_a:t==='Floor storage'?P.flo_W*P.flo_D:1;
+  const levOf = t => t==='Pallet racks'?C.N_lev:1;
+
+  C.share_sum = r2(P.fam_shares.reduce((s,x)=>s+x,0));
+  C.families = P.fam_shares.map((sh,i)=>{
+    const type = P.fam_types[i], name = FAM_NAMES[i];
+    const S_raw = r1(C.S_net*sh);
+    const eff = effOf(type);
+    const S_fp = r1(S_raw*eff);
+    const conv = convOf(type), lev = levOf(type), occ = occOf(type);
+    let gross,unit,rec;
+    const isMisc = type==='Dedicated area'||type==='Repairables';
+    if(isMisc){
+      gross=S_fp; unit=type==='Dedicated area'?'m² (zone)':'m² (review)'; rec=ceil1(S_fp*C.growth);
+    }else if(type==='Pallet racks'){
+      gross=Math.round(S_fp/conv*lev); unit='positions'; rec=ceil1(gross*C.growth);
+    }else if(type==='Floor storage'){
+      gross=r1(S_fp/conv); unit='places'; rec=ceil1(gross*C.growth);
+    }else{
+      gross=r1(S_fp/conv); unit=type==='Shelving'?'m lin. (sol)':'m lin.'; rec=ceil05(gross*C.growth);
+    }
+    const practical = isMisc?gross:r1(gross*occ);
+    return {i,name,type,sh,S_raw,eff,S_fp,conv,lev,gross,occ,practical,rec,unit};
+  });
+
+  // Aggregates
+  const shelFams = C.families.filter(f=>f.type==='Shelving');
+  C.she_ML_ground = r1(shelFams.reduce((s,f)=>s+f.gross,0));
+  C.she_ML_rec = ceil05(shelFams.reduce((s,f)=>s+f.rec,0));
+  C.she_dev_ML = r1(C.she_ML_rec*P.she_lv);
+  C.she_modules = ceil1(C.she_ML_rec/P.she_L);
+
+  const palFam = C.families.find(f=>f.type==='Pallet racks');
+  C.pal_rec = palFam?palFam.rec:0;
+  C.pal_bays = ceil1(C.pal_rec/(P.pal_bay*C.N_lev));
+  C.pal_facade_m = r1(C.pal_bays*C.bay_W);
+
+  const canFam = C.families.find(f=>f.type==='Cantilever');
+  C.can_rec = canFam?canFam.rec:0;
+  C.can_bays = ceil1(C.can_rec/P.can_bL);
+
+  const flrFam = C.families.find(f=>f.type==='Floor storage');
+  C.flo_places = flrFam?flrFam.rec:0;
+  C.flo_m2 = r1(C.flo_places*P.flo_W*P.flo_D);
+
+  const dedFam = C.families.find(f=>f.type==='Dedicated area');
+  C.ded_m2 = dedFam?dedFam.rec:0;
+
+  const repFam = C.families.find(f=>f.type==='Repairables');
+  C.rep_m2 = repFam?repFam.rec:0;
+}
+
+// ─── TAB ─────────────────────────────────────────────────────────────────────
+
+function toggleCard(hdr){
+  hdr.classList.toggle('open');
+  const body = hdr.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+function switchTab(id){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelector(`[data-tab="${id}"]`).classList.add('active');
+  if(id==='tab-results') renderResults();
+  if(id==='tab-layout') {renderLayout(); setTimeout(renderSVG,50);}
+}
+
+// ─── INPUTS TAB ──────────────────────────────────────────────────────────────
+function renderInputsTab(){
+  const pf = document.getElementById('proj-fields');
+  pf.innerHTML=`
+  <div class="form-grid">
+    <div class="field"><label>Surface atelier brute (m²)</label>
+      <input type="number" value="${P.S_workshop}" min="500" max="50000" step="100" oninput="P.S_workshop=+this.value;update()">
+      <span class="hint">Surface totale du bâtiment atelier (brut, incluant murs)</span></div>
+    <div class="field"><label>Hauteur utile de stockage (m)</label>
+      <input type="number" value="${P.H_useful}" min="3" max="12" step="0.5" oninput="P.H_useful=+this.value;update()">
+      <span class="hint">Hauteur libre sous obstacle le plus bas (charpente/MEP)</span></div>
+    <div class="field"><label>Nombre de trains / véhicules</label>
+      <input type="number" value="${P.N_trains}" min="1" max="500" step="1" oninput="P.N_trains=+this.value">
+      <span class="hint">Informatif — module de calcul stock à venir</span></div>
+    <div class="field"><label>Longueur de ligne (km)</label>
+      <input type="number" value="${P.L_line}" min="0" max="500" step="1" oninput="P.L_line=+this.value">
+      <span class="hint">Informatif</span></div>
+  </div>
+  <div style="margin-top:16px;padding:10px 12px;background:var(--surf2);border-radius:6px;font-size:11px;color:var(--tsec)">
+    <strong style="color:var(--text)">S_gross = ${C.S_gross} m²</strong> &nbsp;|&nbsp; 
+    S_nostor = ${C.S_nostor} m² &nbsp;|&nbsp; 
+    <strong style="color:var(--blue)">S_net = ${C.S_net} m²</strong>
+    <span style="float:right">k_store=${(P.k_store*100).toFixed(0)}% · k_nostor=${(P.k_nostor*100).toFixed(0)}%</span>
+  </div>`;
+
+  const pb = document.getElementById('profile-btns');
+  pb.innerHTML = Object.keys(PROFILES).map(k=>
+    `<button class="profile-btn" onclick="loadProfile('${k}')">${k}</button>`
+  ).join('');
+
+  renderFamTable();
+}
+
+function renderFamTable(){
+  const ok = Math.abs(C.share_sum-1)<.001;
+  document.getElementById('share-alert').innerHTML = ok?'':
+    `<div class="alert alert-${C.share_sum>1.01?'err':'warn'}">⚠ Total des parts = ${(C.share_sum*100).toFixed(1)}% — doit être 100%</div>`;
+
+  const t = document.getElementById('fam-table');
+  t.innerHTML=`<thead><tr>
+    <th style="width:180px">Famille</th>
+    <th style="width:70px;text-align:right">Part %</th>
+    <th>Type de stockage</th>
+    <th style="text-align:right">S_raw (m²)</th>
+  </tr></thead><tbody>
+  ${C.families.map((f,i)=>{
+    const col = TC[f.type]||TC['Non-storage'];
+    return `<tr>
+      <td style="font-size:11px;font-weight:500">${f.name}</td>
+      <td style="text-align:right">
+        <input type="number" value="${(f.sh*100).toFixed(0)}" min="0" max="100" step="1"
+          oninput="P.fam_shares[${i}]=+this.value/100;update()">%
+      </td>
+      <td>
+        <span class="type-pill" style="background:${col.fill};color:${col.text};border:1px solid ${col.stroke}">
+          ● ${f.type}
+        </span>
+        <select style="margin-left:6px;display:inline-block" onchange="P.fam_types[${i}]=this.value;update()">
+          ${TYPES.map(tp=>`<option value="${tp}"${f.type===tp?' selected':''}>${tp}</option>`).join('')}
+        </select>
+      </td>
+      <td class="num" style="font-family:var(--mono)">${f.S_raw}</td>
+    </tr>`;
+  }).join('')}
+  <tr class="share-total">
+    <td colspan="2" style="text-align:right;font-weight:600;font-family:var(--mono)">
+      <span class="${ok?'share-ok':'share-err'}">${(C.share_sum*100).toFixed(1)}%</span>
+    </td>
+    <td colspan="2" style="font-size:10px;color:var(--tsec)">${ok?'✓ somme correcte':'⚠ ajuster les parts'}</td>
+  </tr>
+  </tbody>`;
+}
+
+function loadProfile(name){
+  const shares = PROFILES[name];
+  P.fam_shares = [...shares];
+  update();
+}
+
+// ─── ASSUMPTIONS TAB ─────────────────────────────────────────────────────────
+function renderAssumTab(){
+  const sections = [
+    {title:'Allocation surfaces', dot:'#3B82F6', fields:[
+      {label:'k_store — part magasin',key:'k_store',unit:'%',scale:100,min:5,max:50,step:1,hint:'15-25% — fraction de S_workshop allouée au magasin'},
+      {label:'k_nostor — zones hors-stockage',key:'k_nostor',unit:'%',scale:100,min:10,max:60,step:1,hint:'30-40% — réception, quai, staging, circulation, bureau'},
+    ]},
+    {title:'Taux d\'occupation cibles', dot:'#10B981', fields:[
+      {label:'Racks palettes',key:'occ_pal',unit:'%',scale:100,min:50,max:100,step:5,hint:'70-85%'},
+      {label:'Rayonnage',key:'occ_she',unit:'%',scale:100,min:50,max:100,step:5,hint:'70-85%'},
+      {label:'Cantilever',key:'occ_can',unit:'%',scale:100,min:50,max:100,step:5,hint:'65-80%'},
+      {label:'Stockage sol',key:'occ_flo',unit:'%',scale:100,min:50,max:100,step:5,hint:'65-80%'},
+      {label:'Zone dédiée',key:'occ_ded',unit:'%',scale:100,min:80,max:100,step:5,hint:'100% recommandé'},
+    ]},
+    {title:'Facteurs d\'efficacité de layout', dot:'#F59E0B', fields:[
+      {label:'Zone racks palettes',key:'eff_pal',unit:'',scale:1,min:.2,max:.8,step:.05,hint:'0.35-0.55 — fraction zone→empreinte rack (aisles déduits)'},
+      {label:'Zone rayonnage',key:'eff_she',unit:'',scale:1,min:.2,max:.8,step:.05,hint:'0.40-0.60'},
+      {label:'Zone cantilever',key:'eff_can',unit:'',scale:1,min:.15,max:.7,step:.05,hint:'0.30-0.45'},
+      {label:'Zone stockage sol',key:'eff_flo',unit:'',scale:1,min:.3,max:.9,step:.05,hint:'0.55-0.70'},
+    ]},
+    {title:'Géométrie rack palette', dot:'#7C3AED', fields:[
+      {label:'Largeur palette sur lisse (pal_w)',key:'pal_w',unit:'m',scale:1,min:.6,max:1.5,step:.05,hint:'1.20 m pour palette EUR standard'},
+      {label:'Profondeur palette (pal_d)',key:'pal_d',unit:'m',scale:1,min:.6,max:1.5,step:.05,hint:'0.80 m pour palette EUR standard'},
+      {label:'Hauteur charge moyenne (pal_h)',key:'pal_h',unit:'m',scale:1,min:.5,max:2.5,step:.1,hint:'Hauteur palette chargée moyenne'},
+      {label:'Jeu de côté (clr_s)',key:'clr_s',unit:'m',scale:1,min:.03,max:.15,step:.005,hint:'Jeu entre palette et montant'},
+      {label:'Jeu entre palettes (clr_b)',key:'clr_b',unit:'m',scale:1,min:.05,max:.2,step:.01,hint:'Jeu entre les 2 palettes d\'une travée'},
+      {label:'Jeu en profondeur (clr_d)',key:'clr_d',unit:'m',scale:1,min:.05,max:.2,step:.01,hint:'Tolérance profondeur rack'},
+      {label:'Jeu vertical (clr_v)',key:'clr_v',unit:'m',scale:1,min:.1,max:.4,step:.01,hint:'Entre dessus charge et lisse suivante — EN15620'},
+      {label:'Dégagement sol (clr_bt)',key:'clr_bt',unit:'m',scale:1,min:.1,max:.3,step:.01,hint:'Hauteur 1ère lisse au-dessus du sol'},
+      {label:'Dégagement tête (clr_tp)',key:'clr_tp',unit:'m',scale:1,min:.15,max:.6,step:.05,hint:'Libre sous structure bâtiment'},
+      {label:'Positions par travée par niveau',key:'pal_bay',unit:'pos',scale:1,min:1,max:2,step:1,hint:'Standard = 2'},
+    ]},
+    {title:'Géométrie rayonnage', dot:'#10B981', fields:[
+      {label:'Longueur module (she_L)',key:'she_L',unit:'m',scale:1,min:.8,max:2,step:.1,hint:'Pas du module — standard 1.20 m'},
+      {label:'Profondeur module face (she_D)',key:'she_D',unit:'m',scale:1,min:.3,max:.8,step:.05,hint:'Profondeur d\'une face'},
+      {label:'Hauteur module (she_H)',key:'she_H',unit:'m',scale:1,min:1.5,max:3,step:.1,hint:'Hauteur totale du module'},
+      {label:'Nombre de niveaux (she_lv)',key:'she_lv',unit:'niv.',scale:1,min:3,max:9,step:1,hint:'Niveaux de tablettes utilisables'},
+    ]},
+    {title:'Géométrie cantilever', dot:'#F59E0B', fields:[
+      {label:'Longueur de bras (can_a)',key:'can_a',unit:'m',scale:1,min:.4,max:2,step:.1,hint:'Longueur d\'un bras d\'un côté'},
+      {label:'Hauteur colonne (can_H)',key:'can_H',unit:'m',scale:1,min:2,max:7,step:.25,hint:'Hauteur de la colonne'},
+      {label:'Niveaux de bras (can_lv)',key:'can_lv',unit:'niv.',scale:1,min:2,max:8,step:1,hint:'Rangs de bras par colonne'},
+      {label:'Pas de baie (can_bL)',key:'can_bL',unit:'m',scale:1,min:1,max:3,step:.25,hint:'Distance entre axes de colonnes'},
+    ]},
+    {title:'Stockage sol', dot:'#EF4444', fields:[
+      {label:'Largeur emplacement (flo_W)',key:'flo_W',unit:'m',scale:1,min:.5,max:6,step:.5,hint:'Largeur d\'un emplacement balisé'},
+      {label:'Profondeur emplacement (flo_D)',key:'flo_D',unit:'m',scale:1,min:.5,max:6,step:.5,hint:'Profondeur d\'un emplacement balisé'},
+    ]},
+    {title:'Croissance et marge', dot:'#DB2777', fields:[
+      {label:'Marge croissance / contingence (k_gr)',key:'k_gr',unit:'%',scale:100,min:0,max:50,step:5,hint:'Capacité installée au-delà du besoin calculé — 5-20%'},
+    ]},
+  ];
+
+  const el = document.getElementById('assump-content');
+  let html = '<div class="form-grid" style="gap:16px">';
+  let col = 0;
+  for(const sec of sections){
+    if(col===0) html += '<div style="display:flex;flex-direction:column;gap:16px">';
+    html += `<div class="card"><div class="card-header"><div class="card-dot" style="background:${sec.dot}"></div>${sec.title}</div>
+    <div class="form-grid" style="gap:12px">`;
+    for(const f of sec.fields){
+      const disp = f.scale===100?(P[f.key]*100).toFixed(f.step===5?0:1):P[f.key];
+      html += `<div class="field"><label>${f.label}</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" value="${disp}" min="${f.min*f.scale}" max="${f.max*f.scale}" step="${f.step*f.scale}"
+            oninput="P['${f.key}']=+this.value/${f.scale};update()" style="flex:1">
+          <span class="unit-badge">${f.unit}</span>
+        </div>
+        <span class="hint">${f.hint}</span></div>`;
+    }
+    html += '</div></div>';
+    col++;
+    if(col===4){html+='</div>';col=0;}
+  }
+  if(col>0) html+='</div>';
+  html+='</div>';
+  el.innerHTML = html;
+}
+
+// ─── RESULTS TAB ─────────────────────────────────────────────────────────────
+function renderResults(){
+  const ok = Math.abs(C.share_sum-1)<.001;
+  // KPI cards
+  document.getElementById('kpi-row').innerHTML = [
+    {label:'Surface brute magasin',val:C.S_gross,unit:'m²',cls:'blue'},
+    {label:'Surface nette stockage',val:C.S_net,unit:'m²',cls:'green'},
+    {label:'Niveaux rack palette (auto)',val:C.N_lev,unit:`niveaux · h_frame = ${C.h_frame} m`,cls:'amber'},
+    {label:'Hauteur utile bâtiment',val:P.H_useful,unit:'m',cls:'purple'},
+  ].map(k=>`<div class="kpi-card ${k.cls}">
+    <div class="kpi-label">${k.label}</div>
+    <div class="kpi-value">${k.val}</div>
+    <div class="kpi-unit">${k.unit}</div>
+  </div>`).join('');
+
+  if(!ok){
+    document.getElementById('res-thead').innerHTML='';
+    document.getElementById('res-tbody').innerHTML=`<tr><td colspan="8" class="alert alert-err" style="text-align:center">⚠ Corriger la somme des parts (= 100%) dans l'onglet Inputs avant de lire les résultats</td></tr>`;
+    document.getElementById('synth-grid').innerHTML='';
+    return;
+  }
+
+  document.getElementById('res-thead').innerHTML=`<tr>
+    <th>Famille</th><th>Type</th><th style="text-align:right">Part</th>
+    <th style="text-align:right">S_raw (m²)</th><th style="text-align:right">Eff.</th>
+    <th style="text-align:right">S_fp (m²)</th><th style="text-align:right">Capacité brute</th>
+    <th style="text-align:right">Rec. installée</th><th>Unité</th>
+  </tr>`;
+
+  const col = f=>(TC[f.type]||TC['Non-storage']);
+  document.getElementById('res-tbody').innerHTML = C.families.map(f=>`<tr>
+    <td style="font-weight:500;font-size:12px">${f.name}</td>
+    <td><span class="type-pill" style="background:${col(f).fill};color:${col(f).text};border:1px solid ${col(f).stroke};font-size:10px">${f.type}</span></td>
+    <td class="num">${(f.sh*100).toFixed(0)}%</td>
+    <td class="num">${f.S_raw}</td>
+    <td class="num">${f.eff.toFixed(2)}</td>
+    <td class="num">${f.S_fp}</td>
+    <td class="num">${f.gross.toLocaleString('fr')}</td>
+    <td class="rec">${f.rec.toLocaleString('fr')}</td>
+    <td style="font-size:11px;color:var(--tsec)">${f.unit}</td>
+  </tr>`).join('');
+
+  const synth = [
+    {label:'Positions palettes',val:C.pal_rec,sub:`${C.pal_bays} travées · ${C.N_lev} niveaux · façade ≈ ${C.pal_facade_m} m`},
+    {label:'Rayonnage — ML sol installés',val:C.she_ML_rec,sub:`${C.she_modules} modules · ${C.she_dev_ML} ML développés (${P.she_lv} niveaux)`},
+    {label:'Cantilever — ML installés',val:C.can_rec,sub:`${C.can_bays} baies à ${P.can_bL} m de pas`},
+    {label:'Emplacements sol',val:C.flo_places,sub:`≈ ${C.flo_m2} m² balisés (${P.flo_W}×${P.flo_D} m/place)`},
+    {label:'Zone dédiée',val:C.ded_m2,sub:`m² — chimie / batteries / ESD / ATEX`},
+    {label:'Zone réparables',val:C.rep_m2,sub:`m² — à sous-diviser palette + sol`},
+  ];
+  document.getElementById('synth-grid').innerHTML = synth.map(s=>`
+    <div class="synth-item">
+      <div class="synth-label">${s.label}</div>
+      <div class="synth-val">${typeof s.val==='number'?s.val.toLocaleString('fr'):s.val}</div>
+      <div class="synth-sub">${s.sub}</div>
+    </div>`).join('');
+
+  document.getElementById('rack-geo').innerHTML = [
+    {l:'Largeur de travée',v:`${C.bay_W} m`,h:'2×pal_w + 2×clr_s + clr_b'},
+    {l:'Profondeur de travée',v:`${C.bay_D} m`,h:'pal_d + clr_d'},
+    {l:'Empreinte/position (a_pos)',v:`${C.a_pos} m²/pos`,h:'bay_W × bay_D ÷ pal_bay'},
+    {l:'Hauteur par niveau (h_lev)',v:`${C.h_lev} m`,h:'pal_h + clr_v'},
+    {l:'Hauteur châssis (h_frame)',v:`${C.h_frame} m`,h:`≤ H_useful = ${P.H_useful} m ${C.h_frame<=P.H_useful?'✓':'⚠ DÉPASSE'}`},
+    {l:'Niveaux calculés',v:C.N_lev,h:`INT((${P.H_useful}-${P.clr_bt}-${P.clr_tp})/${C.h_lev})`},
+  ].map(x=>`<div class="field"><label>${x.l}</label>
+    <input readonly value="${x.v}"><span class="hint">${x.h}</span></div>`).join('');
+}
+
+// ─── LAYOUT 2D ───────────────────────────────────────────────────────────────
+const SCALE_PX = {v:0};
+const BX=50, BY=50; // building origin in SVG pixels
+
+function initZones(){
+  const W = P.bldg_W;
+  bldg_H_m = r1(C.S_gross / W);
+  document.getElementById('bldg-H-disp').value = bldg_H_m;
+
+  const nostor_H = r1(C.S_nostor / W);
+  const net_H = r1(bldg_H_m - nostor_H);
+
+  layoutZones = [];
+  layoutZones.push({id:'nostor',name:'Non-stockage\n(réception/staging)',type:'Non-storage',
+    x:0,y:0,w:W,h:nostor_H,area_m2:C.S_nostor,locked:true,...TC['Non-storage']});
+
+  const grps = [
+    {key:'Pallet racks',  label:'Racks palettes'},
+    {key:'Shelving',      label:'Rayonnage'},
+    {key:'Cantilever',    label:'Cantilever'},
+    {key:'Floor storage', label:'Stockage sol'},
+    {key:'Dedicated area',label:'Zone dédiée'},
+    {key:'Repairables',   label:'Réparables'},
+  ];
+
+  let xc = 0;
+  for(const g of grps){
+    const total = C.families.filter(f=>f.type===g.key).reduce((s,f)=>s+f.S_raw,0);
+    if(total<0.1) continue;
+    const zw = r1(total/net_H);
+    layoutZones.push({id:g.key.replace(/\W+/g,'_').toLowerCase(),name:g.label,type:g.key,
+      x:xc,y:nostor_H,w:zw,h:net_H,area_m2:total,locked:false,...TC[g.key]});
+    xc = r1(xc+zw);
+  }
+}
+
+function resetZones(){initZones();renderSVG();}
+function updateBldg(){P.bldg_W=+document.getElementById('bldg-W').value;initZones();renderSVG();}
+
+function renderLayout(){
+  recalc();
+  initZones();
+  renderZoneList();
+}
+
+function renderZoneList(){
+  const zl = document.getElementById('zone-list');
+  zl.innerHTML = layoutZones.map(z=>{
+    const c=TC[z.type]||TC['Non-storage'];
+    return `<div class="zone-item" style="border-left-color:${c.stroke}">
+      <div class="zone-item-name">${z.name.replace('\n',' ')}</div>
+      <div class="zone-item-detail">${r1(z.w)} × ${r1(z.h)} m · ${r1(z.area_m2)} m²</div>
+    </div>`;
+  }).join('');
+
+  const totalZone = r1(layoutZones.filter(z=>z.id!=='nostor').reduce((s,z)=>s+z.w*z.h,0));
+  const ratio = C.S_net>0?r1(totalZone/C.S_net*100):0;
+  const cls = ratio<80?'check-ok':ratio<95?'check-warn':'check-err';
+  document.getElementById('area-check').innerHTML=`
+    <div class="check-label">Empreinte zones ÷ S_net</div>
+    <div class="check-val ${cls}">${ratio}%</div>
+    <div style="font-size:10px;color:var(--tsec);margin-top:4px">${totalZone} m² zones / ${C.S_net} m² S_net</div>`;
+}
+
+function renderSVG(){
+  if(!C.S_net) return;
+  const svgEl = document.getElementById('layout-svg');
+  const cont = svgEl.parentElement;
+  const avW = cont.clientWidth - 24;
+  const avH = 480;
+  const sc = Math.min((avW-2*BX)/P.bldg_W, (avH-2*BY)/bldg_H_m);
+  SCALE_PX.v = sc;
+  const svgW = Math.round(P.bldg_W*sc+2*BX);
+  const svgH = Math.round(bldg_H_m*sc+2*BY);
+  svgEl.setAttribute('width',svgW);
+  svgEl.setAttribute('height',svgH);
+  svgEl.setAttribute('viewBox',`0 0 ${svgW} ${svgH}`);
+
+  let html = '';
+
+  // Grid
+  for(let x=0;x<=Math.ceil(P.bldg_W);x++){
+    const maj=x%5===0;
+    const px=BX+x*sc;
+    html+=`<line x1="${px}" y1="${BY}" x2="${px}" y2="${BY+bldg_H_m*sc}" stroke="${maj?'#C8D0DA':'#E8ECF0'}" stroke-width="${maj?.7:.25}"/>`;
+    if(maj&&x>0&&x<P.bldg_W) html+=`<text x="${px}" y="${BY-8}" text-anchor="middle" font-size="10" fill="#94A3B8">${x}m</text>`;
+  }
+  for(let y=0;y<=Math.ceil(bldg_H_m);y++){
+    const maj=y%5===0;
+    const py=BY+y*sc;
+    html+=`<line x1="${BX}" y1="${py}" x2="${BX+P.bldg_W*sc}" y2="${py}" stroke="${maj?'#C8D0DA':'#E8ECF0'}" stroke-width="${maj?.7:.25}"/>`;
+    if(maj&&y>0&&y<bldg_H_m) html+=`<text x="${BX-8}" y="${py+4}" text-anchor="end" font-size="10" fill="#94A3B8">${y}m</text>`;
+  }
+
+  // Zones
+  for(const z of layoutZones){
+    const px=BX+z.x*sc, py=BY+z.y*sc;
+    const pw=z.w*sc, ph=z.h*sc;
+    const lines = z.name.split('\n');
+    const midX = px+pw/2, midY = py+ph/2;
+    let txts = '';
+    if(pw>30&&ph>18){
+      lines.forEach((ln,i)=>{ txts+=`<text x="${midX}" y="${midY+(i-lines.length/2+.5)*14-8}" text-anchor="middle" font-size="${Math.min(12,pw/8)}" font-weight="600" fill="${z.text}" font-family="IBM Plex Sans,sans-serif">${ln}</text>`; });
+      if(ph>40) txts+=`<text x="${midX}" y="${midY+8}" text-anchor="middle" font-size="10" fill="${z.text}" font-family="IBM Plex Mono,monospace">${r1(z.w)}×${r1(z.h)} m</text>`;
+      if(ph>56) txts+=`<text x="${midX}" y="${midY+22}" text-anchor="middle" font-size="10" fill="${z.text}" font-family="IBM Plex Mono,monospace">${r1(z.area_m2)} m²</text>`;
+    }
+    const handle = !z.locked?`<rect class="resize-handle" data-id="${z.id}" x="${px+pw-10}" y="${py+ph-10}" width="10" height="10" fill="${z.stroke}" stroke="white" stroke-width="1" rx="2" style="cursor:se-resize"/>`:'' ;
+    html+=`<g class="zone" data-id="${z.id}" data-locked="${z.locked?1:0}" style="cursor:${z.locked?'default':'grab'}">
+      <rect x="${px}" y="${py}" width="${pw}" height="${ph}" fill="${z.fill}" stroke="${z.stroke}" stroke-width="1.5" rx="2"/>
+      ${txts}${handle}</g>`;
+  }
+
+  // Building outline
+  html+=`<rect x="${BX}" y="${BY}" width="${P.bldg_W*sc}" height="${bldg_H_m*sc}" fill="none" stroke="#1E293B" stroke-width="2" rx="2"/>`;
+
+  // Dimension arrows
+  html+=`<text x="${BX+P.bldg_W*sc/2}" y="${BY+bldg_H_m*sc+22}" text-anchor="middle" font-size="11" fill="#475569" font-family="IBM Plex Mono,monospace">← ${P.bldg_W} m →</text>`;
+  html+=`<text x="${BX-22}" y="${BY+bldg_H_m*sc/2+4}" text-anchor="middle" font-size="11" fill="#475569" font-family="IBM Plex Mono,monospace" transform="rotate(-90,${BX-22},${BY+bldg_H_m*sc/2})">${bldg_H_m} m</text>`;
+
+  svgEl.innerHTML = html;
+  setupDrag(svgEl);
+  renderZoneList();
+}
+
+// ─── DRAG & DROP ─────────────────────────────────────────────────────────────
+function setupDrag(svg){
+  let drag=null;
+  const SNAP=0.5;
+
+  function svgPt(e){
+    const r=svg.getBoundingClientRect();
+    const vb=svg.viewBox.baseVal;
+    return{x:(e.clientX-r.left)*(vb.width/r.width),y:(e.clientY-r.top)*(vb.height/r.height)};
+  }
+  function snap(v){return Math.round(v/SNAP)*SNAP}
+  function px2m(px,axis){return(px-(axis==='x'?BX:BY))/SCALE_PX.v}
+
+  svg.addEventListener('mousedown',e=>{
+    e.preventDefault();
+    const isHandle = e.target.classList.contains('resize-handle');
+    const g = e.target.closest('.zone');
+    if(!g) return;
+    const id = g.dataset.id;
+    if(g.dataset.locked==='1') return;
+    const z = layoutZones.find(z=>z.id===id);
+    if(!z) return;
+    const pt = svgPt(e);
+    drag = {z,isResize:isHandle,pt,ox:z.x,oy:z.y,ow:z.w,oh:z.h};
+    svg.style.cursor = isHandle?'se-resize':'grabbing';
+  });
+
+  window.addEventListener('mousemove',e=>{
+    if(!drag) return;
+    const pt = svgPt(e);
+    const dx = px2m(pt.x,0)-px2m(drag.pt.x,0);
+    const dy = px2m(pt.y,1)-px2m(drag.pt.y,1);
+    const z = drag.z;
+    if(drag.isResize){
+      z.w = snap(Math.max(1,drag.ow+dx));
+      z.h = snap(Math.max(1,drag.oh+dy));
+    }else{
+      z.x = snap(Math.max(0,Math.min(P.bldg_W-z.w,drag.ox+dx)));
+      z.y = snap(Math.max(0,Math.min(bldg_H_m-z.h,drag.oy+dy)));
+    }
+    z.area_m2 = r1(z.w*z.h);
+    renderSVG();
+  });
+
+  window.addEventListener('mouseup',()=>{
+    if(drag){svg.style.cursor='default'; drag=null;}
+  });
+}
+
+// ─── MASTER UPDATE ───────────────────────────────────────────────────────────
+function update(){
+  recalc();
+  renderInputsTab();
+  renderAssumTab();
+  // If results/layout tab is active, refresh
+  if(document.getElementById('tab-results').classList.contains('active')) renderResults();
+  if(document.getElementById('tab-layout').classList.contains('active')){initZones();renderSVG();}
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+recalc();
+renderInputsTab();
+renderAssumTab();
+window.addEventListener('resize',()=>{
+  if(document.getElementById('tab-layout').classList.contains('active')) renderSVG();
+});
+</script>
+
+<div id="tab-help" class="tab-panel">
+<div class="help-wrap">
+
+<div class="help-h1">Documentation du modèle</div>
+<p class="help-lead">Ce guide explique chaque paramètre, sa signification physique, comment le renseigner, et les formules de calcul sous-jacentes. Utiliser conjointement avec les onglets Inputs et Assumptions.</p>
+
+<!-- ══ SECTION WORKFLOW ══════════════════════════════════════════════════ -->
+<div class="help-section">
+<div class="help-section-title"><span>📋</span> Workflow — Comment utiliser le modèle</div>
+<ol class="step-list">
+  <li><strong>Inputs — Paramètres projet :</strong> Renseigner la surface atelier brute, la hauteur utile, la taille de flotte. Ces données initient la chaîne de calcul.</li>
+  <li><strong>Inputs — Familles de stockage :</strong> Ajuster les parts (%) par famille. Utiliser les boutons de profil système (Metro, Tram…) pour charger des valeurs typiques, puis affiner. La somme doit faire 100%.</li>
+  <li><strong>Assumptions :</strong> Vérifier les paramètres géométriques et d'efficacité. Les valeurs par défaut sont calibrées pour un dépôt Metro de taille moyenne. Modifier uniquement ce qui diffère du projet réel.</li>
+  <li><strong>Results :</strong> Lire les capacités recommandées par famille et les totaux par type d'équipement (travées, modules, ML, places). Ces valeurs sont les <em>quantités installées</em> à spécifier en préconception.</li>
+  <li><strong>Layout 2D :</strong> Ajuster la largeur du bâtiment magasin. Glisser et redimensionner les zones pour tester différentes configurations spatiales. Vérifier le ratio empreinte / S_net.</li>
+</ol>
+</div>
+
+<!-- ══ SECTION FORMULES ══════════════════════════════════════════════════ -->
+<div class="help-section">
+<div class="help-section-title"><span>🔢</span> Chaîne de calcul — Formules</div>
+
+<!-- Étape 1 : surface -->
+<div class="fcard">
+  <div class="fcard-hdr open" onclick="toggleCard(this)">
+    <div style="width:12px;height:12px;border-radius:50%;background:#3B82F6;flex-shrink:0"></div>
+    <div class="fcard-hdr-title">Étape 1 — Surface nette de stockage (S_net)</div>
+    <span class="fcard-hdr-icon">▶</span>
+  </div>
+  <div class="fcard-body open">
+    <div class="info-grid">
+      <div class="info-box"><div class="info-box-label">Principe</div>
+        <p>La surface totale de l'atelier est réduite en deux étapes : d'abord on extrait la part réservée au magasin (k_store), puis on retire les zones non-stockage à l'intérieur de ce magasin (k_nostor). Le reste est la surface nette disponible pour les racks.</p>
+      </div>
+      <div class="info-box"><div class="info-box-label">Valeurs typiques</div>
+        <p>k_store = 18-22% pour un dépôt ferroviaire standard.<br>k_nostor = 30-40% (réception 8%, staging 10%, quai 5%, bureau/SST 5%, circulation 10-15%).</p>
+      </div>
+    </div>
+    <div class="formula-box">
+<span class="cm">── Surface brute du magasin ──────────────────────────</span>
+<span class="hi-g">S_gross</span>  =  <span class="hi-y">S_workshop</span>  ×  <span class="hi-y">k_store</span>
+         =  6 000 m²  ×  0.18  =  <span class="hi-g">1 080 m²</span>
+
+<span class="cm">── Zone non-stockage (réception, staging, bureau…) ───</span>
+<span class="hi-g">S_nostor</span> =  <span class="hi-g">S_gross</span>  ×  <span class="hi-y">k_nostor</span>
+         =  1 080  ×  0.35  =  <span class="hi-g">378 m²</span>
+
+<span class="cm">── Surface nette de stockage ← BASE DE TOUS LES CALCULS</span>
+<span class="hi-g">S_net</span>    =  <span class="hi-g">S_gross</span>  −  <span class="hi-g">S_nostor</span>
+         =  1 080  −  378   =  <span class="hi-g">702 m²</span>
+
+<span class="cm">Forme compacte : S_net = S_workshop × k_store × (1 − k_nostor)</span>
+    </div>
+  </div>
+</div>
+
+<!-- Étape 2 : famille -->
+<div class="fcard">
+  <div class="fcard-hdr open" onclick="toggleCard(this)">
+    <div style="width:12px;height:12px;border-radius:50%;background:#10B981;flex-shrink:0"></div>
+    <div class="fcard-hdr-title">Étape 2 — Capacité par famille de stockage</div>
+    <span class="fcard-hdr-icon">▶</span>
+  </div>
+  <div class="fcard-body open">
+    <div class="info-box" style="margin-bottom:12px"><div class="info-box-label">Principe</div>
+      <p>S_net est découpé selon les parts (%) de chaque famille. Chaque zone brute est réduite par un facteur d'efficacité de layout (eff) pour obtenir l'empreinte réelle des équipements (aisles déduits). L'empreinte est ensuite convertie en unités de capacité selon le type de stockage.</p>
+    </div>
+    <div class="formula-box">
+<span class="cm">── Pour chaque famille i ──────────────────────────────</span>
+<span class="hi-b">S_raw_i</span>  =  <span class="hi-g">S_net</span>  ×  <span class="hi-y">share_i</span>          <span class="cm">← zone brute allouée à la famille</span>
+         =  702  ×  0.30  =  <span class="hi-b">210.6 m²</span>  <span class="cm">(ex. palettes 30%)</span>
+
+<span class="hi-b">S_fp_i</span>   =  <span class="hi-b">S_raw_i</span>  ×  <span class="hi-y">eff_i</span>          <span class="cm">← empreinte rack après déduction aisles</span>
+         =  210.6  ×  0.45  =  <span class="hi-b">94.8 m²</span>  <span class="cm">(eff_pallet = 45%)</span>
+
+<span class="cm">── Conversion S_fp → capacité (par type) ─────────────</span>
+  Racks palettes :  <span class="hi-g">N_pos</span>  =  S_fp / <span class="hi-y">a_pos</span>  ×  <span class="hi-y">N_lev</span>
+                         =  94.8 / 1.1925  ×  3  =  <span class="hi-g">238 positions</span>
+  Rayonnage :       <span class="hi-g">ML_sol</span> =  S_fp / <span class="hi-y">she_D</span>
+                         =  70.2 / 0.50  =  <span class="hi-g">140.4 m linéaires</span>
+  Cantilever :      <span class="hi-g">ML</span>     =  S_fp / (2 × <span class="hi-y">can_a</span>)
+                         =  12.3 / 1.60  =  <span class="hi-g">7.7 m linéaires</span>
+  Stockage sol :    <span class="hi-g">places</span> =  S_fp / (<span class="hi-y">flo_W</span> × <span class="hi-y">flo_D</span>)
+                         =  45.6 / 4.00  =  <span class="hi-g">11.4 places</span>
+  Dédié/Répar :    <span class="hi-g">zone</span>   =  S_fp  (m²)
+
+<span class="cm">── Application marge croissance ──────────────────────</span>
+<span class="hi-g">Rec. installé</span> =  CEILING ( capacité_brute  ×  (1 + <span class="hi-y">k_gr</span>),  granulométrie )
+         ex. :  CEILING ( 238  ×  1.10,  1 )  =  <span class="hi-g">262 positions</span>
+<span class="cm">Granulométrie : 1 pour positions et places · 0.5 pour ML (arrondi au demi-mètre)</span>
+    </div>
+  </div>
+</div>
+
+<!-- Étape 3 : géométrie rack -->
+<div class="fcard">
+  <div class="fcard-hdr open" onclick="toggleCard(this)">
+    <div style="width:12px;height:12px;border-radius:50%;background:#7C3AED;flex-shrink:0"></div>
+    <div class="fcard-hdr-title">Étape 3 — Géométrie rack palette (bay_W, bay_D, a_pos, N_lev)</div>
+    <span class="fcard-hdr-icon">▶</span>
+  </div>
+  <div class="fcard-body open">
+    <div class="rack-svg-wrap">
+      <svg viewBox="0 0 560 230" width="100%" max-width="560" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono,monospace">
+        <!-- Top view of bay -->
+        <text x="280" y="15" text-anchor="middle" font-size="11" fill="#475569" font-weight="600">VUE DE DESSUS — TRAVÉE (1 NIVEAU)</text>
+
+        <!-- Bay background -->
+        <rect x="40" y="26" width="265" height="90" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5" rx="2"/>
+
+        <!-- Left upright -->
+        <rect x="40" y="26" width="10" height="90" fill="#1D4ED8" rx="1"/>
+        <!-- Right upright -->
+        <rect x="295" y="26" width="10" height="90" fill="#1D4ED8" rx="1"/>
+
+        <!-- Left pallet -->
+        <rect x="57.5" y="31" width="95" height="80" fill="#BFDBFE" stroke="#60A5FA" stroke-width="1" rx="1"/>
+        <text x="105" y="75" text-anchor="middle" font-size="10" fill="#1D4ED8">PAL</text>
+        <text x="105" y="88" text-anchor="middle" font-size="9" fill="#3B82F6">pal_w×pal_d</text>
+
+        <!-- Right pallet -->
+        <rect x="162.5" y="31" width="95" height="80" fill="#BFDBFE" stroke="#60A5FA" stroke-width="1" rx="1"/>
+        <text x="210" y="75" text-anchor="middle" font-size="10" fill="#1D4ED8">PAL</text>
+        <text x="210" y="88" text-anchor="middle" font-size="9" fill="#3B82F6">pal_w×pal_d</text>
+
+        <!-- Annotations top -->
+        <!-- clr_s left -->
+        <line x1="50" y1="22" x2="57.5" y2="22" stroke="#EF4444" stroke-width="1" marker-start="url(#arr)" marker-end="url(#arr)"/>
+        <text x="53.5" y="19" text-anchor="middle" font-size="8" fill="#EF4444">clr_s</text>
+
+        <!-- pal_w left -->
+        <line x1="57.5" y1="22" x2="152.5" y2="22" stroke="#059669" stroke-width="1"/>
+        <text x="105" y="19" text-anchor="middle" font-size="8" fill="#059669">pal_w</text>
+
+        <!-- clr_b -->
+        <line x1="152.5" y1="22" x2="162.5" y2="22" stroke="#EF4444" stroke-width="1"/>
+        <text x="157.5" y="19" text-anchor="middle" font-size="8" fill="#EF4444">clr_b</text>
+
+        <!-- pal_w right -->
+        <line x1="162.5" y1="22" x2="257.5" y2="22" stroke="#059669" stroke-width="1"/>
+        <text x="210" y="19" text-anchor="middle" font-size="8" fill="#059669">pal_w</text>
+
+        <!-- clr_s right -->
+        <line x1="257.5" y1="22" x2="265" y2="22" stroke="#EF4444" stroke-width="1"/>
+        <text x="262" y="19" text-anchor="middle" font-size="8" fill="#EF4444">clr_s</text>
+
+        <!-- bay_W total -->
+        <line x1="40" y1="130" x2="305" y2="130" stroke="#1D4ED8" stroke-width="1.5" marker-start="url(#arr)" marker-end="url(#arr)"/>
+        <text x="172.5" y="143" text-anchor="middle" font-size="10" fill="#1D4ED8" font-weight="600">bay_W = 2×pal_w + 2×clr_s + clr_b = 2.65 m</text>
+
+        <!-- Depth view on right -->
+        <text x="340" y="26" text-anchor="start" font-size="11" fill="#475569" font-weight="600">VUE DE CÔTÉ (profondeur)</text>
+
+        <!-- Aisle -->
+        <rect x="340" y="36" width="30" height="70" fill="#F1F5F9" stroke="#CBD5E1" stroke-dasharray="3,2"/>
+        <text x="355" y="73" text-anchor="middle" font-size="8" fill="#94A3B8">allée</text>
+
+        <!-- Rack depth -->
+        <rect x="370" y="36" width="70" height="70" fill="#BFDBFE" stroke="#60A5FA" stroke-width="1"/>
+        <text x="405" y="74" text-anchor="middle" font-size="9" fill="#1D4ED8">pal_d</text>
+        <text x="405" y="85" text-anchor="middle" font-size="8" fill="#3B82F6">+clr_d</text>
+
+        <!-- bay_D arrow -->
+        <line x1="340" y1="115" x2="440" y2="115" stroke="#7C3AED" stroke-width="1.5"/>
+        <text x="390" y="126" text-anchor="middle" font-size="9" fill="#7C3AED" font-weight="600">bay_D = pal_d + clr_d = 0.90 m</text>
+
+        <!-- Height view -->
+        <text x="340" y="155" text-anchor="start" font-size="11" fill="#475569" font-weight="600">VUE DE FACE (hauteur châssis)</text>
+
+        <!-- Frame height bars -->
+        <rect x="340" y="162" width="60" height="7" fill="#E2E8F0" stroke="#CBD5E1"/> <!-- clr_bt -->
+        <text x="410" y="168" font-size="8" fill="#94A3B8">clr_bt = 0.15 m</text>
+        <rect x="340" y="169" width="60" height="18" fill="#BFDBFE" stroke="#60A5FA"/> <!-- level 1 -->
+        <text x="410" y="181" font-size="8" fill="#3B82F6">niveau 1 : pal_h+clr_v = 1.40 m</text>
+        <rect x="340" y="187" width="60" height="18" fill="#BFDBFE" stroke="#60A5FA"/> <!-- level 2 -->
+        <text x="410" y="199" font-size="8" fill="#3B82F6">niveau 2</text>
+        <rect x="340" y="205" width="60" height="18" fill="#BFDBFE" stroke="#60A5FA"/> <!-- level 3 -->
+        <text x="410" y="217" font-size="8" fill="#3B82F6">niveau 3</text>
+        <rect x="340" y="223" width="60" height="6" fill="#E2E8F0" stroke="#CBD5E1"/> <!-- clr_tp -->
+        <text x="410" y="228" font-size="8" fill="#94A3B8">clr_tp = 0.30 m</text>
+
+        <line x1="330" y1="162" x2="330" y2="229" stroke="#374151" stroke-width="1.5"/>
+        <text x="322" y="200" font-size="8" fill="#374151" text-anchor="middle" transform="rotate(-90,322,200)">h_frame=4.65m</text>
+
+        <defs>
+          <marker id="arr" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#1D4ED8"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+    <div class="formula-box">
+<span class="cm">── Dimensions d'une travée ────────────────────────────</span>
+<span class="hi-b">bay_W</span> = 2×<span class="hi-y">pal_w</span> + 2×<span class="hi-y">clr_s</span> + <span class="hi-y">clr_b</span>    <span class="cm">← largeur totale, 2 palettes côte à côte</span>
+      = 2×1.20 + 2×0.075 + 0.10  =  <span class="hi-g">2.65 m</span>
+
+<span class="hi-b">bay_D</span> = <span class="hi-y">pal_d</span> + <span class="hi-y">clr_d</span>                  <span class="cm">← profondeur rack (pallet + tolérance)</span>
+      = 0.80 + 0.10  =  <span class="hi-g">0.90 m</span>
+
+<span class="hi-b">a_pos</span> = bay_W × bay_D / <span class="hi-y">pal_bay</span>          <span class="cm">← empreinte par emplacement palette (m²/pos)</span>
+      = 2.65 × 0.90 / 2  =  <span class="hi-g">1.1925 m²/pos</span>
+
+<span class="cm">── Calcul du nombre de niveaux (auto depuis H_useful) ─</span>
+<span class="hi-b">h_lev</span>  = <span class="hi-y">pal_h</span> + <span class="hi-y">clr_v</span>                <span class="cm">← hauteur par niveau (charge + dégagement)</span>
+       = 1.20 + 0.20  =  <span class="hi-g">1.40 m</span>
+
+<span class="hi-b">N_lev</span>  = INT( (<span class="hi-y">H_useful</span> − <span class="hi-y">clr_bt</span> − <span class="hi-y">clr_tp</span>) / h_lev )
+       = INT( (6.00 − 0.15 − 0.30) / 1.40 )
+       = INT( 3.96 )  =  <span class="hi-g">3 niveaux</span>
+
+<span class="hi-b">h_frame</span> = <span class="hi-y">clr_bt</span> + N_lev × h_lev + <span class="hi-y">clr_tp</span>   <span class="cm">← vérification vs H_useful</span>
+        = 0.15 + 3×1.40 + 0.30  =  <span class="hi-g">4.65 m</span>  (doit être ≤ H_useful)
+    </div>
+  </div>
+</div>
+
+<!-- Étape 4 : facteur eff -->
+<div class="fcard">
+  <div class="fcard-hdr" onclick="toggleCard(this)">
+    <div style="width:12px;height:12px;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>
+    <div class="fcard-hdr-title">Étape 4 — Facteur d'efficacité de layout (eff)</div>
+    <span class="fcard-hdr-icon">▶</span>
+  </div>
+  <div class="fcard-body">
+    <div class="info-box" style="margin-bottom:12px"><div class="info-box-label">Définition</div>
+      <p>Le facteur eff représente la fraction de la zone brute (S_raw) qui se transforme en empreinte réelle de rack, une fois les allées principales et allées transversales déduites. C'est un paramètre empirique issu de l'expérience de layouts réels.</p>
+    </div>
+    <div class="formula-box">
+<span class="cm">Exemple : zone racks palettes, eff_pal = 0.45</span>
+<span class="hi-b">S_fp</span> = <span class="hi-b">S_raw</span> × <span class="hi-y">eff_pal</span>
+     = 210.6 × 0.45 = <span class="hi-g">94.8 m²</span>
+
+<span class="cm">La zone brute est 210.6 m². Sur ces 210.6 m² :</span>
+<span class="cm">  · 94.8 m² sont occupés par les racks (empreinte réelle)</span>
+<span class="cm">  · 115.8 m² sont les allées de manutention (= 55% de la zone)</span>
+
+<span class="cm">Valeurs typiques par type de stockage :</span>
+  eff_pal = 0.45   <span class="cm">← allées chariot élévateur larges (3-3.5m)</span>
+  eff_she = 0.50   <span class="cm">← allées piéton plus étroites (0.8-1.0m)</span>
+  eff_can = 0.35   <span class="cm">← allées larges pour grue/pont, items longs</span>
+  eff_flo = 0.65   <span class="cm">← emplacements délimités, circulation directe</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- end formules -->
+
+<!-- ══ SECTION PARAMS INPUTS ════════════════════════════════════════════ -->
+<div class="help-section">
+<div class="help-section-title"><span>📥</span> Référence des paramètres — Onglet Inputs</div>
+
+<div class="fcard">
+  <div class="fcard-hdr open" onclick="toggleCard(this)">
+    <div style="width:12px;height:12px;border-radius:50%;background:#3B82F6;flex-shrink:0"></div>
+    <div class="fcard-hdr-title">Paramètres projet</div>
+    <span class="fcard-hdr-icon">▶</span>
+  </div>
+  <div class="fcard-body open">
+    <table class="param-table">
+      <thead><tr><th>Symbole</th><th>Paramètre</th><th>Unité</th><th>Défaut</th><th>Comment le renseigner</th></tr></thead>
+      <tbody>
+        <tr><td><span class="sym sym-amber">S_workshop</span></td><td>Surface atelier brute</td><td>m²</td><td>6 000</td><td>Surface totale du bâtiment atelier (hors espaces extérieurs). Utiliser la surface de plancher brute incluant murs et structure. Source : plan de masse ou dossier technique bâtiment.</td></tr>
+        <tr><td><span class="sym sym-amber">H_useful</span></td><td>Hauteur utile de stockage</td><td>m</td><td>6</td><td>Hauteur libre mesurée de sol fini jusqu'au premier obstacle en dessous : charpente, tuyauterie, câblage, tête de sprinkler. Détermine automatiquement le nombre de niveaux de rack.</td></tr>
+        <tr><td><span class="sym sym-amber">N_trains</span></td><td>Nombre de trains / véhicules</td><td>unités</td><td>30</td><td>Taille totale de la flotte maintenue depuis ce dépôt. Informatif dans la v8 — utilisé dans la future version avec calcul stock par inventaire.</td></tr>
+        <tr><td><span class="sym sym-amber">L_line</span></td><td>Longueur de ligne</td><td>km</td><td>35</td><td>Longueur totale de ligne exploitée. Informatif — peut influencer la quantité de pièces de voie en stock dans une version future.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="fcard">
+  <div class="fcard-hdr open" onclick="toggleCard(this)">
+    <div style="width:12px;height:12px;border-radius:50%;background:#10B981;flex-shrink:0"></div>
+    <div class="fcard-hdr-title">Distribution des familles de stockage</div>
+    <span class="fcard-hdr-icon">▶</span>
+  </div>
+  <div class="fcard-body open">
+    <div class="info-box" style="margin-bottom:12px"><div class="info-box-label">Principe des parts (%)</div>
+      <p>Chaque famille reçoit une fraction de S_net. La somme des 8 parts doit être exactement 100%. Ces parts reflètent le <em>poids volumétrique relatif</em> de chaque catégorie de pièces dans la politique de stock du dépôt.</p>
+    </div>
+    <table class="param-table">
+      <thead><tr><th>Famille</th><th>Type par défaut</th><th>Défaut Metro</th><th>Contenu typique</th><th>Comment ajuster</th></tr></thead>
+      <tbody>
+        <tr><td>Small parts / fasteners</td><td>Shelving</td><td>20%</td><td>Visserie, quincaillerie, petites pièces électriques, joints, bacs à becs</td><td>Augmenter si flotte APM/Tram à forte densité de composants électroniques</td></tr>
+        <tr><td>Medium parts / cartons</td><td>Shelving</td><td>15%</td><td>Sous-ensembles en carton, relais, modules électroniques emballés</td><td>Augmenter pour systèmes à forte consommation de sous-ensembles échangeables</td></tr>
+        <tr><td>Palletized heavy parts</td><td>Pallet racks</td><td>30%</td><td>Pièces lourdes sur palette, stock lots, grandes pièces conditionnées</td><td>Heavy Rail peut monter à 35-40% — bogies, essieux sur palettes spéciales</td></tr>
+        <tr><td>Long indoor parts</td><td>Cantilever</td><td>5%</td><td>Profilés, tubes, barres, traverses intérieures, câbleries longues</td><td>Heavy Rail : 8-10% si stockage de longs composants de voie. Réduire si OEM gère tout.</td></tr>
+        <tr><td>Heavy / irregular parts</td><td>Floor storage</td><td>10%</td><td>Bogies, caisses, jigs de levage, sous-ensembles non-palettisables</td><td>Réduire si tout est géré en zone atelier (bogie area) hors du magasin central</td></tr>
+        <tr><td>Sensitive / regulated</td><td>Dedicated area</td><td>5%</td><td>Produits chimiques, batteries de traction/auxiliaires, pièces ESD, ATEX</td><td>APM : 7-8% si batteries Li-ion volumineuses. Toujours prévoir salle dédiée EHS.</td></tr>
+        <tr><td>Tools / consumables</td><td>Shelving</td><td>5%</td><td>Outils à main, EPI, lubrifiants, consommables atelier</td><td>Augmenter si dépôt multi-métier (voie + infrastructure + matériel roulant)</td></tr>
+        <tr><td>Repairables / rotables</td><td>Repairables</td><td>10%</td><td>Sous-ensembles réparables en attente de réparation OEM ou interne</td><td>Réduire si politique "exchange pool" centralisée hors dépôt. Augmenter pour LRU de grande valeur.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- ══ SECTION PARAMS ASSUMPTIONS ══════════════════════════════════════ -->
+<div class="help-section">
+<div class="help-section-title"><span>⚙️</span> Référence des paramètres — Onglet Assumptions</div>
+
+<div class="fcard">
+  <div class="fcard-hdr open" onclick="toggleCard(this)">
+    <div style="width:12px;height:12px;border-radius:50%;background:#3B82F6;flex-shrink:0"></div>
+    <div class="fcard-hdr-title">Allocation surface — k_store et k_nostor</div>
+    <span class="fcard-hdr-icon">▶</span>
+  </div>
+  <div class="fcard-body open">
+    <table class="param-table">
+      <thead><tr><th>Symbole</th><th>Définition</th><th>Défaut</th><th>Fourchette</th><th>Explication détaillée</th></tr></thead>
+      <tbody>
+        <tr><td><span class="sym sym-amber">k_store</span></td><td>Ratio surface magasin / atelier</td><td>18%</td><td>15-25%</td><td>Fraction de S_workshop allouée au magasin central. Pour un dépôt Metro de 30 trains, 18% est typique. Augmenter pour un dépôt avec forte rotation de stock ou politique de stock étendu (Maintenance by Stock). Réduire si politique "lean" avec approvisionnement JIT.</td></tr>
+        <tr><td><span class="sym sym-amber">k_nostor</span></td><td>Ratio zones non-stockage dans le magasin</td><td>35%</td><td>30-45%</td><td>Fraction de S_gross occupée par les fonctions supports : quai de déchargement/chargement (~8%), zone de réception/contrôle entrant (~5%), zone de quarantaine (~3%), staging sortant (~5%), bureau magasinier/GMAO (~4%), circulation principale (~10%). Si le quai est extérieur au magasin, réduire à 25-30%.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="fcard">
+  <div class="fcard-hdr" onclick="toggleCard(this)">
+    <div style="width:12px;height:12px;border-radius:50%;background:#10B981;flex-shrink:0"></div>
+    <div class="fcard-hdr-title">Taux d'occupation cibles (occ)</div>
+    <span class="fcard-hdr-icon">▶</span>
+  </div>
+  <div class="fcard-body">
+    <div class="info-box" style="margin-bottom:12px"><div class="info-box-label">Rôle dans le calcul</div>
+      <p>Le taux d'occupation cible définit le niveau de remplissage planifié des équipements. La capacité pratique = capacité brute × occ. Ce n'est PAS un facteur appliqué sur la capacité installée — c'est un indicateur de planification pour le magasinier.</p>
+    </div>
+    <table class="param-table">
+      <thead><tr><th>Paramètre</th><th>Défaut</th><th>Explication</th></tr></thead>
+      <tbody>
+        <tr><td><span class="sym sym-amber">occ_pal</span> — Racks palettes</td><td>80%</td><td>Ne jamais viser 100% : il faut de la marge pour les réceptions d'urgence, les palettes en cours de conditionnement, et l'accès aux positions de picking. 80% est la règle professionnelle standard (FEM 9.831).</td></tr>
+        <tr><td><span class="sym sym-amber">occ_she</span> — Rayonnage</td><td>80%</td><td>Même logique. Au-delà de 85%, les préparateurs ne peuvent plus trouver facilement les emplacements libres lors de mises en stock.</td></tr>
+        <tr><td><span class="sym sym-amber">occ_can</span> — Cantilever</td><td>75%</td><td>Marge plus large car les items longs sont difficiles à repositionner et nécessitent un dégagement de manœuvre en allée.</td></tr>
+        <tr><td><span class="sym sym-amber">occ_flo</span> — Stockage sol</td><td>75%</td><td>Les pièces lourdes et encombrantes nécessitent des voies de circulation dégagées en permanence pour le chariot élévateur et/ou le pont roulant.</td></tr>
+        <tr><td><span class="sym sym-amber">occ_ded</span> — Zone dédiée</td><td>100%</td><td>La zone dédiée est calculée pour correspondre exactement à son besoin. Elle ne sert pas de buffer — laisser à 100%.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="fcard">
+  <div class="fcard-hdr" onclick="toggleCard(this)">
+    <div style="width:12px;height:12px;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>
+    <div class="fcard-hdr-title">Facteurs d'efficacité layout (eff)</div>
+    <span class="fcard-hdr-icon">▶</span>
+  </div>
+  <div class="fcard-body">
+    <table class="param-table">
+      <thead><tr><th>Paramètre</th><th>Défaut</th><th>Fourchette</th><th>Signification physique</th></tr></thead>
+      <tbody>
+        <tr><td><span class="sym sym-amber">eff_pal</span></td><td>0.45</td><td>0.35 – 0.55</td><td>Pour 100 m² de zone palette : 45 m² sont des racks, 55 m² sont les allées de manutention (allée principale ≈ 3.5m pour reach truck, allées transversales ≈ 2m). En entrepôt logistique optimisé : 0.50-0.55. En atelier avec contraintes colonnes : 0.35-0.40.</td></tr>
+        <tr><td><span class="sym sym-amber">eff_she</span></td><td>0.50</td><td>0.40 – 0.60</td><td>Allées piéton plus étroites (80-100 cm) → meilleure efficacité que les racks palette. 0.50 est valable pour une configuration double-face (rayonnage des 2 côtés d'une allée). Montant si open shelving sans contrainte.</td></tr>
+        <tr><td><span class="sym sym-amber">eff_can</span></td><td>0.35</td><td>0.30 – 0.45</td><td>Les allées cantilever doivent être larges pour permettre la mise en place par pont roulant ou chariot à bras latéraux (allée ≥ 4m). D'où une efficacité faible. Réduire à 0.30 si pont roulant unique avec rotation.</td></tr>
+        <tr><td><span class="sym sym-amber">eff_flo</span></td><td>0.65</td><td>0.55 – 0.70</td><td>Les emplacements sol sont délimités par des lignes peintes. La circulation se fait dans les allées restantes. 0.65 correspond à une disposition en rangées avec voies de 2.5-3m. Descendre à 0.55 si manutention par grue avec circulation omnidirectionnelle.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="fcard">
+  <div class="fcard-hdr" onclick="toggleCard(this)">
+    <div style="width:12px;height:12px;border-radius:50%;background:#7C3AED;flex-shrink:0"></div>
+    <div class="fcard-hdr-title">Géométrie rack palette — jeux et tolérances</div>
+    <span class="fcard-hdr-icon">▶</span>
+  </div>
+  <div class="fcard-body">
+    <table class="param-table">
+      <thead><tr><th>Symbole</th><th>Nom</th><th>Défaut</th><th>Norme/Référence</th><th>Comment renseigner</th></tr></thead>
+      <tbody>
+        <tr><td><span class="sym sym-amber">pal_w</span></td><td>Largeur palette sur lisse</td><td>1.20 m</td><td>ISO 6780</td><td>Dimension de la palette dans la direction parallèle aux lisses. Palette EUR 1200×800 : pal_w=1.20 m si les 1200 mm sont dans la direction de la lisse. Vérifier le sens de chargement réel sur le projet.</td></tr>
+        <tr><td><span class="sym sym-amber">pal_d</span></td><td>Profondeur palette dans le rack</td><td>0.80 m</td><td>ISO 6780</td><td>Dimension de la palette dans la direction de profondeur du rack (perpendiculaire à l'allée). EUR : 0.80 m. Industrial pallet 1200×1200 mm : pal_d=1.20 m → revoir a_pos !</td></tr>
+        <tr><td><span class="sym sym-amber">pal_h</span></td><td>Hauteur palette chargée (moyenne)</td><td>1.20 m</td><td>EN 15620</td><td>Hauteur totale incluant la palette vide (144mm) + la charge. Valeur moyenne sur l'ensemble du stock. Si les palettes les plus hautes dépassent 1.50 m, utiliser 1.50 m pour ne pas sous-dimensionner les niveaux.</td></tr>
+        <tr><td><span class="sym sym-amber">clr_s</span></td><td>Jeu de côté (entre palette et montant)</td><td>75 mm</td><td>EN 15620 cl.300</td><td>Jeu minimal entre le bord de la palette et l'axe du montant. 75 mm est la valeur EN 15620 pour chariots classe 300 (reach truck). Augmenter à 100 mm si chariots moins précis ou voies étroites.</td></tr>
+        <tr><td><span class="sym sym-amber">clr_b</span></td><td>Jeu entre palettes dans la travée</td><td>100 mm</td><td>EN 15620 cl.300</td><td>Jeu central entre les deux palettes adjacentes sur la même lisse. 100 mm minimum EN 15620. Ne pas réduire en dessous de 75 mm même en espace contraint.</td></tr>
+        <tr><td><span class="sym sym-amber">clr_d</span></td><td>Tolérance profondeur</td><td>100 mm</td><td>—</td><td>Marge ajoutée à pal_d pour tenir compte du débordement arrière, de la structure du rack, et des tolérances de positionnement. 100 mm est conservateur — peut descendre à 75 mm sur racks neufs bien calibrés.</td></tr>
+        <tr><td><span class="sym sym-amber">clr_v</span></td><td>Jeu vertical entre charge et lisse</td><td>200 mm</td><td>EN 15620</td><td>Dégagement minimum entre le dessus de la charge la plus haute et la face inférieure de la lisse suivante. 200 mm pour chariots à fourches standards. Augmenter à 250 mm si palettes instables ou emballages dépassants.</td></tr>
+        <tr><td><span class="sym sym-amber">clr_bt</span></td><td>Dégagement au sol (1ère lisse)</td><td>150 mm</td><td>EN 15512</td><td>Hauteur du centre de la première lisse par rapport au sol fini. 150 mm minimum pour éviter le contact de la fourche avec les pieds de rack. En zone humide ou nettoyage haute pression : 200 mm.</td></tr>
+        <tr><td><span class="sym sym-amber">clr_tp</span></td><td>Dégagement tête (sous structure)</td><td>300 mm</td><td>EN 15620</td><td>Espace libre entre le dessus du dernier niveau chargé et le premier obstacle (charpente, sprinkler, éclairage). 300 mm minimum. Si sprinklers ESFR : vérifier la note de calcul spécifique incendie (souvent 500 mm ou plus).</td></tr>
+        <tr><td><span class="sym sym-amber">pal_bay</span></td><td>Positions par travée par niveau</td><td>2</td><td>—</td><td>Standard = 2 (une travée = 2 palettes côte à côte). Utiliser 1 uniquement pour racks spéciaux (très lourds, double profondeur, cantilever-rack).</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="fcard">
+  <div class="fcard-hdr" onclick="toggleCard(this)">
+    <div style="width:12px;height:12px;border-radius:50%;background:#10B981;flex-shrink:0"></div>
+    <div class="fcard-hdr-title">Géométrie rayonnage, cantilever, sol et marge croissance</div>
+    <span class="fcard-hdr-icon">▶</span>
+  </div>
+  <div class="fcard-body">
+    <table class="param-table">
+      <thead><tr><th>Symbole</th><th>Définition</th><th>Défaut</th><th>Comment renseigner</th></tr></thead>
+      <tbody>
+        <tr><td><span class="sym sym-amber">she_L</span></td><td>Longueur module rayonnage</td><td>1.20 m</td><td>Pas standard du module. 1.20 m est la longueur la plus répandue en Europe. Vérifier le catalogue fournisseur envisagé — certains fournissent en 1.00 m ou 1.50 m.</td></tr>
+        <tr><td><span class="sym sym-amber">she_D</span></td><td>Profondeur une face</td><td>0.50 m</td><td>Profondeur d'une seule face de rayonnage. 0.50 m pour picking manuel confortable. 0.40 m pour petits articles. 0.60 m pour boîtes plus profondes. En double-face dos à dos : la profondeur totale = 2×she_D.</td></tr>
+        <tr><td><span class="sym sym-amber">she_H</span></td><td>Hauteur module</td><td>2.20 m</td><td>Hauteur totale du module. Max recommandé pour picking sans équipement : 2.20-2.40 m. Au-delà → escabeau obligatoire (DU/DUER). Si on veut 2.50 m, prévoir des escabeaux en nombre suffisant.</td></tr>
+        <tr><td><span class="sym sym-amber">she_lv</span></td><td>Niveaux de tablettes</td><td>6</td><td>Nombre de tablettes utilisables (hors tablette basse en option). 6 niveaux sur 2.20 m = espacement moyen 33 cm, cohérent avec des bacs de 25-30 cm de hauteur.</td></tr>
+        <tr><td><span class="sym sym-amber">can_a</span></td><td>Longueur de bras cantilever</td><td>0.80 m</td><td>Longueur d'un seul bras, depuis la face de la colonne. Doit être ≥ longueur_pièce_la_plus_longue / 2 (si stockage centré) ou ≥ longueur maximale (si porte-à-faux). 0.80 m pour profilés ≤ 3m. 1.20 m pour rails ≤ 6m.</td></tr>
+        <tr><td><span class="sym sym-amber">can_bL</span></td><td>Pas de baie cantilever</td><td>1.75 m</td><td>Distance entre axes de colonnes successives. Doit être ≤ porte-à-faux admissible des pièces stockées pour éviter la déflexion. Pour des profilés métalliques : 1.75-2.00 m. Pour des tubes PVC : 1.00-1.25 m.</td></tr>
+        <tr><td><span class="sym sym-amber">flo_W / flo_D</span></td><td>Dimensions emplacement sol</td><td>2.00 × 2.00 m</td><td>Adapter aux pièces réelles. Bogie Metro : 3.0×2.5 m minimum. Jig de levage : 2.5×2.0 m. Prévoir 10-15% de marge sur les dimensions réelles pour l'accès de pose par chariot ou grue.</td></tr>
+        <tr><td><span class="sym sym-amber">k_gr</span></td><td>Marge croissance/contingence</td><td>10%</td><td>Capacité installée en plus du besoin calculé. 10% pour projet stable. 15-20% si extension de flotte prévue ou incertitude sur le volume de stock initial. Ce facteur s'applique en dernier : rec = CEILING(brut × (1+k_gr)).</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div><!-- end assumptions -->
+
+<!-- ══ SECTION TYPES DE STOCKAGE ════════════════════════════════════════ -->
+<div class="help-section">
+<div class="help-section-title"><span>📦</span> Synthèse des conversions par type de stockage</div>
+<div class="fcard">
+  <div class="fcard-hdr open" onclick="toggleCard(this)">
+    <div style="width:12px;height:12px;border-radius:50%;background:#6366F1;flex-shrink:0"></div>
+    <div class="fcard-hdr-title">Tableau de conversion — S_fp → Capacité installée</div>
+    <span class="fcard-hdr-icon">▶</span>
+  </div>
+  <div class="fcard-body open">
+    <table class="type-table">
+      <thead><tr><th>Type</th><th>Facteur eff</th><th>Formule capacité brute</th><th>Facteur marge</th><th>Unité output</th><th>Dérivés calculés</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="type-pill" style="background:#DBEAFE;color:#1D4ED8;border:1px solid #3B82F6;font-size:10px">Pallet racks</span></td>
+          <td><span class="sym">eff_pal</span> = 0.45</td>
+          <td><code>S_fp / a_pos × N_lev</code><br><span style="font-size:10px;color:var(--tsec)">empreinte ÷ m²/position × niveaux</span></td>
+          <td>× (1+k_gr), arrondi sup. à 1</td>
+          <td><strong>positions</strong></td>
+          <td>Travées = positions_rec ÷ (pal_bay×N_lev)<br>Façade (m) = travées × bay_W</td>
+        </tr>
+        <tr>
+          <td><span class="type-pill" style="background:#D1FAE5;color:#065F46;border:1px solid #10B981;font-size:10px">Shelving</span></td>
+          <td><span class="sym">eff_she</span> = 0.50</td>
+          <td><code>S_fp / she_D</code><br><span style="font-size:10px;color:var(--tsec)">empreinte ÷ profondeur module → ML sol</span></td>
+          <td>× (1+k_gr), arrondi sup. à 0.5</td>
+          <td><strong>m lin. (sol)</strong></td>
+          <td>ML développés = ML_sol × she_lv<br>Modules = ML_sol_rec ÷ she_L</td>
+        </tr>
+        <tr>
+          <td><span class="type-pill" style="background:#FEF3C7;color:#92400E;border:1px solid #F59E0B;font-size:10px">Cantilever</span></td>
+          <td><span class="sym">eff_can</span> = 0.35</td>
+          <td><code>S_fp / (2 × can_a)</code><br><span style="font-size:10px;color:var(--tsec)">empreinte ÷ profondeur effective (2 côtés)</span></td>
+          <td>× (1+k_gr), arrondi sup. à 0.5</td>
+          <td><strong>m lin.</strong></td>
+          <td>Baies = ML_rec ÷ can_bL</td>
+        </tr>
+        <tr>
+          <td><span class="type-pill" style="background:#FEE2E2;color:#991B1B;border:1px solid #EF4444;font-size:10px">Floor storage</span></td>
+          <td><span class="sym">eff_flo</span> = 0.65</td>
+          <td><code>S_fp / (flo_W × flo_D)</code><br><span style="font-size:10px;color:var(--tsec)">empreinte ÷ surface d'un emplacement</span></td>
+          <td>× (1+k_gr), arrondi sup. à 1</td>
+          <td><strong>places</strong></td>
+          <td>Surface totale = places × flo_W × flo_D</td>
+        </tr>
+        <tr>
+          <td><span class="type-pill" style="background:#EDE9FE;color:#4C1D95;border:1px solid #7C3AED;font-size:10px">Dedicated area</span></td>
+          <td>1.00 (pas de déduction allée)</td>
+          <td><code>S_fp</code><br><span style="font-size:10px;color:var(--tsec)">la zone est délimitée à sa surface exacte</span></td>
+          <td>× (1+k_gr), arrondi sup. à 1</td>
+          <td><strong>m² (zone)</strong></td>
+          <td>À sub-diviser : ATEX / batteries / ESD / produits chimiques</td>
+        </tr>
+        <tr>
+          <td><span class="type-pill" style="background:#FCE7F3;color:#831843;border:1px solid #DB2777;font-size:10px">Repairables</span></td>
+          <td>(eff_pal+eff_flo)/2 ≈ 0.55</td>
+          <td><code>S_fp</code><br><span style="font-size:10px;color:var(--tsec)">proxy m² — mix palette + sol selon rotables</span></td>
+          <td>× (1+k_gr), arrondi sup. à 1</td>
+          <td><strong>m² (review)</strong></td>
+          <td>À revoir manuellement après inventaire du pool de rotables</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+</div><!-- help-wrap -->
+</div><!-- tab-help -->
+
+</body>
+</html>

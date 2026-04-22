@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Depot Suite - Unified Simulator Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0F172A;
+  --panel:#1E293B;
+  --panel2:#273549;
+  --surface:#F8FAFC;
+  --surface2:#F1F5F9;
+  --surface3:#E2E8F0;
+  --border:#CBD5E1;
+  --text:#0F172A;
+  --text2:#475569;
+  --text3:#94A3B8;
+  --blue:#1D4ED8;
+  --blueL:#DBEAFE;
+  --blueD:#1E3A8A;
+  --green:#065F46;
+  --greenL:#D1FAE5;
+  --amber:#B45309;
+  --amberL:#FEF3C7;
+  --teal:#0F766E;
+  --tealL:#CCFBF1;
+  --purple:#4C1D95;
+  --purpleL:#EDE9FE;
+  --red:#991B1B;
+  --redL:#FEE2E2;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --radius:10px;
+  --radiusLg:16px;
+  --shadow:0 18px 40px rgba(15,23,42,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  font-family:var(--sans);
+  color:var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(29,78,216,.12), transparent 28%),
+    radial-gradient(circle at top right, rgba(15,118,110,.10), transparent 24%),
+    linear-gradient(180deg, #F8FAFC 0%, #EEF2F7 100%);
+}
+.app-shell{min-height:100vh}
+.app-header{
+  position:sticky;
+  top:0;
+  z-index:100;
+  display:flex;
+  align-items:center;
+  gap:18px;
+  padding:0 24px;
+  height:64px;
+  background:rgba(15,23,42,.94);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid rgba(147,197,253,.18);
+}
+.app-logo{
+  font-family:var(--mono);
+  font-size:13px;
+  font-weight:500;
+  color:#93C5FD;
+  letter-spacing:.04em;
+  white-space:nowrap;
+}
+.app-head-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
+.app-title{
+  font-size:14px;
+  font-weight:600;
+  color:#F8FAFC;
+  white-space:nowrap;
+}
+.app-subtitle{
+  font-size:11px;
+  color:#94A3B8;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.header-spacer{flex:1}
+.app-badge{
+  font-family:var(--mono);
+  font-size:10px;
+  color:#93C5FD;
+  background:#1E3A8A;
+  border:1px solid rgba(147,197,253,.2);
+  padding:4px 8px;
+  border-radius:999px;
+  white-space:nowrap;
+}
+.topbar{
+  position:sticky;
+  top:64px;
+  z-index:90;
+  background:rgba(30,41,59,.96);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid rgba(147,197,253,.16);
+}
+.main-tabs{
+  max-width:1440px;
+  margin:0 auto;
+  padding:0 20px;
+  display:flex;
+  gap:6px;
+  overflow-x:auto;
+}
+.main-tab{
+  appearance:none;
+  border:none;
+  background:none;
+  color:#94A3B8;
+  font:500 12px var(--sans);
+  letter-spacing:.03em;
+  padding:14px 16px;
+  border-bottom:2px solid transparent;
+  white-space:nowrap;
+  cursor:pointer;
+  transition:color .15s,border-color .15s,background .15s;
+}
+.main-tab:hover{color:#CBD5E1;background:rgba(255,255,255,.02)}
+.main-tab.active{
+  color:#93C5FD;
+  border-bottom-color:#3B82F6;
+}
+.page{
+  max-width:1440px;
+  margin:0 auto;
+  padding:24px 20px 32px;
+}
+.hero{
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(320px,.95fr);
+  gap:18px;
+  margin-bottom:20px;
+}
+.hero-main,
+.hero-side{
+  background:rgba(255,255,255,.8);
+  border:1px solid rgba(203,213,225,.9);
+  border-radius:var(--radiusLg);
+  box-shadow:var(--shadow);
+}
+.hero-main{
+  padding:24px 24px 22px;
+  position:relative;
+  overflow:hidden;
+}
+.hero-main::before{
+  content:'';
+  position:absolute;
+  inset:auto -60px -80px auto;
+  width:220px;
+  height:220px;
+  border-radius:50%;
+  background:linear-gradient(135deg, rgba(29,78,216,.14), rgba(15,118,110,.08));
+}
+.hero-kicker{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--blueD);
+  background:var(--blueL);
+  border:1px solid #BFDBFE;
+  border-radius:999px;
+  padding:5px 10px;
+  margin-bottom:14px;
+}
+.hero h1{
+  font-size:30px;
+  line-height:1.05;
+  margin-bottom:10px;
+  max-width:12ch;
+}
+.hero p{
+  font-size:14px;
+  line-height:1.7;
+  color:var(--text2);
+  max-width:62ch;
+}
+.hero-meta{
+  margin-top:18px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.meta-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  border-radius:999px;
+  font-size:11px;
+  color:var(--text2);
+  background:var(--surface2);
+  border:1px solid var(--border);
+}
+.hero-side{
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.side-title{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text2);
+}
+.quick-card{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:12px;
+  align-items:center;
+  padding:14px 14px 14px 16px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:#fff;
+}
+.quick-card.fitout{border-left:4px solid var(--blue)}
+.quick-card.store{border-left:4px solid var(--purple)}
+.quick-card.vehicles{border-left:4px solid var(--teal)}
+.quick-card-title{
+  font-size:13px;
+  font-weight:600;
+  margin-bottom:4px;
+}
+.quick-card-copy{
+  font-size:11px;
+  color:var(--text2);
+  line-height:1.5;
+}
+.context-strip{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);
+  gap:18px;
+  margin-bottom:18px;
+}
+.context-card{
+  background:rgba(255,255,255,.88);
+  border:1px solid rgba(203,213,225,.95);
+  border-radius:var(--radiusLg);
+  box-shadow:var(--shadow);
+}
+.context-form{
+  padding:18px 18px 16px;
+}
+.context-head{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+.context-title{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text2);
+}
+.context-caption{
+  font-size:12px;
+  color:var(--text3);
+  line-height:1.5;
+}
+.context-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.ctx-field{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.ctx-field.wide{grid-column:1 / -1}
+.ctx-field label{
+  font-size:11px;
+  font-weight:500;
+  color:var(--text2);
+}
+.ctx-input{
+  width:100%;
+  font-family:var(--mono);
+  font-size:13px;
+  padding:9px 11px;
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  background:var(--amberL);
+  color:var(--amber);
+  outline:none;
+  transition:border-color .15s,box-shadow .15s,background .15s;
+}
+.ctx-input:focus{
+  border-color:#F59E0B;
+  box-shadow:0 0 0 3px rgba(245,158,11,.14);
+}
+.context-actions{
+  margin-top:14px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.ctx-btn{
+  appearance:none;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:#fff;
+  color:var(--text);
+  padding:8px 12px;
+  font:500 11px var(--sans);
+  cursor:pointer;
+}
+.ctx-btn:hover{background:var(--surface2)}
+.context-summary{
+  padding:18px;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.summary-card{
+  padding:14px 14px 12px;
+  border-radius:14px;
+  background:#fff;
+  border:1px solid var(--border);
+}
+.summary-label{
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text3);
+  margin-bottom:8px;
+}
+.summary-value{
+  font-size:18px;
+  line-height:1.1;
+  font-weight:600;
+  color:var(--text);
+}
+.summary-sub{
+  margin-top:6px;
+  font-size:11px;
+  line-height:1.5;
+  color:var(--text2);
+}
+.summary-link{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-top:8px;
+  color:var(--blueD);
+  text-decoration:none;
+  font-size:11px;
+  font-weight:500;
+}
+.summary-link:hover{text-decoration:underline}
+.jump-btn,.frame-btn{
+  appearance:none;
+  border:none;
+  border-radius:999px;
+  cursor:pointer;
+  font:500 11px var(--sans);
+  transition:transform .12s,background .15s,color .15s,border-color .15s;
+}
+.jump-btn:hover,.frame-btn:hover{transform:translateY(-1px)}
+.jump-btn{
+  padding:8px 12px;
+  background:var(--surface2);
+  color:var(--text);
+  border:1px solid var(--border);
+}
+.jump-btn.active{
+  background:var(--bg);
+  color:#fff;
+  border-color:var(--bg);
+}
+.stage{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.module-panel{
+  display:none;
+}
+.module-panel.active{
+  display:block;
+}
+.module-shell{
+  background:rgba(255,255,255,.86);
+  border:1px solid rgba(203,213,225,.95);
+  border-radius:var(--radiusLg);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.module-head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:16px;
+  align-items:start;
+  padding:18px 20px;
+  background:linear-gradient(180deg, rgba(248,250,252,.98), rgba(241,245,249,.92));
+  border-bottom:1px solid var(--border);
+}
+.module-title-row{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:10px;
+  margin-bottom:8px;
+}
+.module-title{
+  font-size:18px;
+  font-weight:600;
+}
+.module-badge{
+  font-family:var(--mono);
+  font-size:10px;
+  border-radius:999px;
+  padding:4px 8px;
+  border:1px solid transparent;
+}
+.module-badge.fitout{background:var(--blueL);color:var(--blueD);border-color:#BFDBFE}
+.module-badge.store{background:var(--purpleL);color:var(--purple);border-color:#DDD6FE}
+.module-badge.vehicles{background:var(--tealL);color:var(--teal);border-color:#99F6E4}
+.module-copy{
+  font-size:13px;
+  line-height:1.65;
+  color:var(--text2);
+  max-width:80ch;
+}
+.module-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:flex-end;
+}
+.frame-btn{
+  padding:9px 12px;
+  background:#fff;
+  color:var(--text);
+  border:1px solid var(--border);
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+}
+.frame-btn.primary{
+  background:var(--bg);
+  color:#fff;
+  border-color:var(--bg);
+}
+.frame-wrap{
+  padding:18px;
+}
+.frame-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin-bottom:14px;
+}
+.frame-status{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:11px;
+  color:var(--text2);
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:6px 10px;
+}
+.frame-status::before{
+  content:'';
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#94A3B8;
+  box-shadow:0 0 0 3px rgba(148,163,184,.14);
+}
+.frame-status.ready::before{
+  background:#10B981;
+  box-shadow:0 0 0 3px rgba(16,185,129,.14);
+}
+.frame-note{
+  font-size:11px;
+  color:var(--text3);
+}
+.frame-stage{
+  position:relative;
+  border-radius:14px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  background:#fff;
+  min-height:1120px;
+}
+.frame-placeholder{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  align-items:center;
+  justify-content:center;
+  background:
+    linear-gradient(180deg, rgba(248,250,252,.96), rgba(241,245,249,.9)),
+    repeating-linear-gradient(90deg, rgba(148,163,184,.06) 0, rgba(148,163,184,.06) 1px, transparent 1px, transparent 34px);
+  color:var(--text2);
+  text-align:center;
+  padding:28px;
+}
+.placeholder-title{
+  font-size:15px;
+  font-weight:600;
+}
+.placeholder-copy{
+  font-size:12px;
+  line-height:1.65;
+  max-width:44ch;
+}
+.frame-shell{
+  width:100%;
+  min-height:1120px;
+  border:none;
+  display:block;
+  background:#fff;
+}
+.frame-shell.hidden{display:none}
+.footer-note{
+  margin-top:18px;
+  padding:12px 14px;
+  border:1px solid var(--border);
+  background:rgba(241,245,249,.76);
+  border-radius:12px;
+  font-size:11px;
+  color:var(--text2);
+  line-height:1.6;
+}
+@media(max-width:1060px){
+  .hero{grid-template-columns:1fr}
+  .context-strip{grid-template-columns:1fr}
+}
+@media(max-width:780px){
+  .app-header{padding:0 16px}
+  .page{padding:18px 14px 24px}
+  .module-head{grid-template-columns:1fr}
+  .module-actions{justify-content:flex-start}
+  .hero h1{font-size:24px}
+  .context-grid,
+  .context-summary{grid-template-columns:1fr}
+  .context-actions{flex-direction:column;align-items:stretch}
+  .ctx-btn{text-align:center}
+  .app-subtitle{display:none}
+  .frame-stage,
+  .frame-shell{min-height:900px}
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="app-header">
+    <div class="app-logo">◼ DEPOT SUITE</div>
+    <div class="app-head-copy">
+      <div class="app-title">Unified Simulator Hub</div>
+      <div class="app-subtitle" id="app-subtitle">One interface for depot fit-out, store sizing, and vehicles and washing costs</div>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="app-badge">Phase 1 Integration</div>
+  </header>
+
+  <div class="topbar">
+    <nav class="main-tabs" role="tablist" aria-label="Main simulators">
+      <button class="main-tab active" id="tab-fitout" role="tab" aria-selected="true" aria-controls="panel-fitout" data-tab="fitout">① Depot Fit-Out</button>
+      <button class="main-tab" id="tab-store" role="tab" aria-selected="false" aria-controls="panel-store" data-tab="store">② Store Pre-Sizing</button>
+      <button class="main-tab" id="tab-vehicles" role="tab" aria-selected="false" aria-controls="panel-vehicles" data-tab="vehicles">③ Vehicles & Washing</button>
+    </nav>
+  </div>
+
+  <main class="page">
+    <section class="hero">
+      <div class="hero-main">
+        <div class="hero-kicker">Unified Navigation Layer</div>
+        <h1>Three simulators, one entry point.</h1>
+        <p>This interface brings the three existing tools together without merging their business logic. Each simulator keeps its own calculations, internal tabs, and structure, but you no longer need to switch between scattered files.</p>
+        <div class="hero-meta">
+          <div class="meta-pill">Saved navigation</div>
+          <div class="meta-pill">Lazy loading</div>
+          <div class="meta-pill">Direct access to source files</div>
+        </div>
+      </div>
+
+      <aside class="hero-side" aria-label="Quick access">
+        <div class="side-title">Quick access</div>
+        <div class="quick-card fitout">
+          <div>
+            <div class="quick-card-title">Depot Fit-Out</div>
+            <div class="quick-card-copy">Depot setup, workshop equipment, CAPEX and recurring costs, and summary view.</div>
+          </div>
+          <button class="jump-btn active" data-jump="fitout">Open</button>
+        </div>
+        <div class="quick-card store">
+          <div>
+            <div class="quick-card-title">Store Pre-Sizing</div>
+            <div class="quick-card-copy">Store pre-sizing, 2D layout, costing, and reference documentation.</div>
+          </div>
+          <button class="jump-btn" data-jump="store">Open</button>
+        </div>
+        <div class="quick-card vehicles">
+          <div>
+            <div class="quick-card-title">Vehicles & Washing</div>
+            <div class="quick-card-copy">Track vehicle OPEX, water, detergent, and contract-level visibility.</div>
+          </div>
+          <button class="jump-btn" data-jump="vehicles">Open</button>
+        </div>
+      </aside>
+    </section>
+
+    <section class="context-strip" style="grid-template-columns:1fr">
+      <div class="context-card">
+        <div class="context-head">
+          <div>
+            <div class="context-title">Project Library</div>
+            <div class="context-caption">Create, save, duplicate, and reload complete projects from this browser with IndexedDB.</div>
+          </div>
+        </div>
+        <div class="context-grid">
+          <div class="ctx-field wide">
+            <label for="project-selector">Saved Projects</label>
+            <select class="ctx-input" id="project-selector">
+              <option value="">Unsaved workspace</option>
+            </select>
+          </div>
+          <div class="ctx-field wide">
+            <label>Current Project</label>
+            <div id="project-status" class="summary-sub" style="margin-top:0;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff">Unsaved workspace</div>
+          </div>
+        </div>
+        <div class="context-actions">
+          <button class="ctx-btn" type="button" id="project-new">New project</button>
+          <button class="ctx-btn" type="button" id="project-save">Save project</button>
+          <button class="ctx-btn" type="button" id="project-duplicate">Duplicate</button>
+          <button class="ctx-btn" type="button" id="project-delete">Delete</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="context-strip">
+      <div class="context-card context-form">
+        <div class="context-head">
+          <div>
+            <div class="context-title">Project Context</div>
+            <div class="context-caption">This information is stored in the hub to keep a shared context while navigating across the three modules.</div>
+          </div>
+        </div>
+        <div class="context-grid">
+          <div class="ctx-field">
+            <label for="ctx-project-name">Project</label>
+            <input class="ctx-input" id="ctx-project-name" type="text" placeholder="Depot Marseille East">
+          </div>
+          <div class="ctx-field">
+            <label for="ctx-context-type">Context</label>
+            <select class="ctx-input" id="ctx-context-type">
+              <option value="">Select context</option>
+              <option value="Metro">Metro</option>
+              <option value="Tram">Tram</option>
+              <option value="APM">APM</option>
+              <option value="Heavy Rail">Heavy Rail</option>
+            </select>
+          </div>
+          <div class="ctx-field wide">
+            <label for="ctx-region-name">Region</label>
+            <select class="ctx-input" id="ctx-region-name">
+              <option value="">Select region</option>
+              <option value="North Africa">North Africa</option>
+              <option value="Sub-saharan Africa">Sub-saharan Africa</option>
+              <option value="Middle East">Middle East</option>
+              <option value="West Europe">West Europe</option>
+              <option value="Eastern Europe">Eastern Europe</option>
+              <option value="North America">North America</option>
+              <option value="Latin America">Latin America</option>
+            </select>
+          </div>
+          <div class="ctx-field">
+            <label for="ctx-line-length">Line Length (km)</label>
+            <input class="ctx-input" id="ctx-line-length" type="number" min="0" max="5000" step="1">
+          </div>
+          <div class="ctx-field">
+            <label for="ctx-contract-years">Contract Duration</label>
+            <input class="ctx-input" id="ctx-contract-years" type="number" min="1" max="40" step="1">
+          </div>
+          <div class="ctx-field wide">
+            <label for="ctx-currency">Currency</label>
+            <input class="ctx-input" id="ctx-currency" type="text" maxlength="12" placeholder="EUR">
+          </div>
+        </div>
+        <div class="context-actions">
+          <button class="ctx-btn" type="button" id="ctx-reset">Reset context</button>
+        </div>
+      </div>
+
+      <aside class="context-card context-summary" aria-label="Project summary">
+        <div class="summary-card">
+          <div class="summary-label">Project</div>
+          <div class="summary-value" id="summary-project">Project not set</div>
+          <div class="summary-sub" id="summary-project-sub">Add a project name and context to keep the workspace consistent.</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Contract</div>
+          <div class="summary-value" id="summary-contract">10 years</div>
+          <div class="summary-sub" id="summary-contract-sub">Currency: EUR · Line length: not set</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Active Module</div>
+          <div class="summary-value" id="summary-module">Depot Fit-Out</div>
+          <div class="summary-sub" id="summary-module-sub">CAPEX / OPEX fit-out and depot equipment.</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Source</div>
+          <div class="summary-value" id="summary-source">depot_fitout_v2.html</div>
+          <div class="summary-sub">The original file remains available separately.</div>
+          <a class="summary-link" id="summary-source-link" href="depot_fitout_v2.html" target="_blank" rel="noopener">Open source file</a>
+        </div>
+      </aside>
+    </section>
+
+    <section class="stage">
+      <section class="module-panel active" id="panel-fitout" role="tabpanel" aria-labelledby="tab-fitout">
+        <div class="module-shell">
+          <div class="module-head">
+            <div>
+              <div class="module-title-row">
+                <h2 class="module-title">Depot Fit-Out Estimator</h2>
+                <span class="module-badge fitout">CAPEX / RECURRING</span>
+              </div>
+              <div class="module-copy">Workshop and common-area fit-out module: staffing, fixed quantities, equipment, pallet trucks, and contract-duration budget view.</div>
+            </div>
+            <div class="module-actions">
+              <button class="frame-btn" type="button" data-reload="fitout">Reload</button>
+              <a class="frame-btn primary" href="depot_fitout_v2.html" target="_blank" rel="noopener">Open standalone</a>
+            </div>
+          </div>
+          <div class="frame-wrap">
+            <div class="frame-meta">
+              <div class="frame-status" id="status-fitout">Ready to load</div>
+              <div class="frame-note">The original simulator stays intact and isolated in its own runtime context.</div>
+            </div>
+            <div class="frame-stage">
+              <div class="frame-placeholder" id="placeholder-fitout">
+                <div class="placeholder-title">Fit-Out module loads on activation</div>
+                <div class="placeholder-copy">Content is injected on demand to keep the main interface light and avoid loading all three simulators at once.</div>
+              </div>
+              <iframe class="frame-shell hidden" id="frame-fitout" title="Depot Fit-Out Estimator" loading="lazy" data-src="depot_fitout_v2.html"></iframe>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="module-panel" id="panel-store" role="tabpanel" aria-labelledby="tab-store">
+        <div class="module-shell">
+          <div class="module-head">
+            <div>
+              <div class="module-title-row">
+                <h2 class="module-title">Store Pre-Sizing Model</h2>
+                <span class="module-badge store">LAYOUT / COSTING</span>
+              </div>
+              <div class="module-copy">Store module with family distribution, geometry assumptions, recommended capacity, 2D layout, detailed help, and equipment costing.</div>
+            </div>
+            <div class="module-actions">
+              <button class="frame-btn" type="button" data-reload="store">Reload</button>
+              <a class="frame-btn primary" href="rail_store_En_Cost_Vref.html" target="_blank" rel="noopener">Open standalone</a>
+            </div>
+          </div>
+          <div class="frame-wrap">
+            <div class="frame-meta">
+              <div class="frame-status" id="status-store">Ready to load</div>
+              <div class="frame-note">This is the largest module, so loading only starts when its tab is opened.</div>
+            </div>
+            <div class="frame-stage">
+              <div class="frame-placeholder" id="placeholder-store">
+                <div class="placeholder-title">Store sizing waiting to load</div>
+                <div class="placeholder-copy">The model keeps its SVG layout, formulas, and costing without colliding with the other simulators.</div>
+              </div>
+              <iframe class="frame-shell hidden" id="frame-store" title="Store Pre-Sizing Model" loading="lazy" data-src="rail_store_En_Cost_Vref.html"></iframe>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="module-panel" id="panel-vehicles" role="tabpanel" aria-labelledby="tab-vehicles">
+        <div class="module-shell">
+          <div class="module-head">
+            <div>
+              <div class="module-title-row">
+                <h2 class="module-title">Track Vehicles & Train Washing</h2>
+                <span class="module-badge vehicles">OPEX / WATER</span>
+              </div>
+              <div class="module-copy">Operations module for the maintenance fleet: fuel, water, train washing, annual summary, and contract-duration view.</div>
+            </div>
+            <div class="module-actions">
+              <button class="frame-btn" type="button" data-reload="vehicles">Reload</button>
+              <a class="frame-btn primary" href="track_vehicles_washing_opex_v2.html" target="_blank" rel="noopener">Open standalone</a>
+            </div>
+          </div>
+          <div class="frame-wrap">
+            <div class="frame-meta">
+              <div class="frame-status" id="status-vehicles">Ready to load</div>
+              <div class="frame-note">The results view now stays consistent across active fleet inputs and train washing totals.</div>
+            </div>
+            <div class="frame-stage">
+              <div class="frame-placeholder" id="placeholder-vehicles">
+                <div class="placeholder-title">Vehicles & Washing waiting to load</div>
+                <div class="placeholder-copy">This panel keeps fuel and water calculations separate while making them accessible from the same workspace.</div>
+              </div>
+              <iframe class="frame-shell hidden" id="frame-vehicles" title="Track Vehicles OPEX and Train Washing" loading="lazy" data-src="track_vehicles_washing_opex_v2.html"></iframe>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <div class="footer-note">Possible next step: add a fourth cross-module synthesis tab with a few shared parameters, without breaking the independence of the existing simulators.</div>
+  </main>
+</div>
+
+<script>
+const MODULES = {
+  fitout:{
+    key:'fitout',
+    label:'Depot Fit-Out',
+    summary:'CAPEX / OPEX fit-out and depot equipment.',
+    src:'depot_fitout_v2.html',
+    frameId:'frame-fitout',
+    panelId:'panel-fitout',
+    tabId:'tab-fitout',
+    statusId:'status-fitout',
+    placeholderId:'placeholder-fitout',
+    defaultHeight:1500,
+  },
+  store:{
+    key:'store',
+    label:'Store Pre-Sizing',
+    summary:'Storage sizing, layout, assumptions and costing.',
+    src:'rail_store_En_Cost_Vref.html',
+    frameId:'frame-store',
+    panelId:'panel-store',
+    tabId:'tab-store',
+    statusId:'status-store',
+    placeholderId:'placeholder-store',
+    defaultHeight:2100,
+  },
+  vehicles:{
+    key:'vehicles',
+    label:'Vehicles & Washing',
+    summary:'Fleet OPEX, washing, water and contract view.',
+    src:'track_vehicles_washing_opex_v2.html',
+    frameId:'frame-vehicles',
+    panelId:'panel-vehicles',
+    tabId:'tab-vehicles',
+    statusId:'status-vehicles',
+    placeholderId:'placeholder-vehicles',
+    defaultHeight:1700,
+  },
+};
+
+const TAB_ORDER = ['fitout','store','vehicles'];
+const CONTEXT_KEY = 'depot-suite-project-context';
+const PROJECT_DB_NAME = 'depot-suite-projects';
+const PROJECT_DB_VERSION = 1;
+const PROJECT_STORE_NAME = 'projects';
+const CURRENT_PROJECT_KEY = 'depot-suite-current-project-id';
+const DEFAULT_CONTEXT = {
+  projectName:'',
+  contextType:'',
+  regionName:'',
+  lineLengthKm:'',
+  contractYears:'10',
+  currency:'EUR',
+};
+let activeKey = 'fitout';
+let projectContext = {...DEFAULT_CONTEXT};
+let currentProjectId = '';
+let pendingModuleState = {fitout:null, store:null, vehicles:null};
+let projectList = [];
+
+function loadProjectContext(){
+  try{
+    const raw = localStorage.getItem(CONTEXT_KEY);
+    if(!raw) return {...DEFAULT_CONTEXT};
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT_CONTEXT,
+      ...parsed,
+      contextType: typeof parsed.contextType === 'string' ? parsed.contextType : '',
+      regionName: typeof parsed.regionName === 'string' ? parsed.regionName : (typeof parsed.lineName === 'string' ? parsed.lineName : ''),
+    };
+  }catch{
+    return {...DEFAULT_CONTEXT};
+  }
+}
+
+function saveProjectContext(){
+  localStorage.setItem(CONTEXT_KEY, JSON.stringify(projectContext));
+}
+
+function openProjectsDb(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(PROJECT_DB_NAME, PROJECT_DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains(PROJECT_STORE_NAME)){
+        const store = db.createObjectStore(PROJECT_STORE_NAME, {keyPath:'id'});
+        store.createIndex('updatedAt', 'updatedAt');
+        store.createIndex('name', 'name');
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('IndexedDB open failed'));
+  });
+}
+
+function readAllProjectsFromDb(){
+  return openProjectsDb().then(db=>new Promise((resolve,reject)=>{
+    const tx = db.transaction(PROJECT_STORE_NAME, 'readonly');
+    const store = tx.objectStore(PROJECT_STORE_NAME);
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error || new Error('Failed to read projects'));
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => db.close();
+    tx.onabort = () => db.close();
+  }));
+}
+
+function readProjectFromDb(id){
+  if(!id) return Promise.resolve(null);
+  return openProjectsDb().then(db=>new Promise((resolve,reject)=>{
+    const tx = db.transaction(PROJECT_STORE_NAME, 'readonly');
+    const store = tx.objectStore(PROJECT_STORE_NAME);
+    const req = store.get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error || new Error('Failed to read project'));
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => db.close();
+    tx.onabort = () => db.close();
+  }));
+}
+
+function writeProjectToDb(record){
+  return openProjectsDb().then(db=>new Promise((resolve,reject)=>{
+    const tx = db.transaction(PROJECT_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(PROJECT_STORE_NAME);
+    const req = store.put(record);
+    req.onsuccess = () => resolve(record);
+    req.onerror = () => reject(req.error || new Error('Failed to save project'));
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => db.close();
+    tx.onabort = () => db.close();
+  }));
+}
+
+function deleteProjectFromDb(id){
+  if(!id) return Promise.resolve();
+  return openProjectsDb().then(db=>new Promise((resolve,reject)=>{
+    const tx = db.transaction(PROJECT_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(PROJECT_STORE_NAME);
+    const req = store.delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error || new Error('Failed to delete project'));
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => db.close();
+    tx.onabort = () => db.close();
+  }));
+}
+
+function createProjectId(){
+  if(window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+  return 'project-' + Date.now() + '-' + Math.random().toString(16).slice(2,8);
+}
+
+function cloneJson(value){
+  return value == null ? null : JSON.parse(JSON.stringify(value));
+}
+
+function getFrameProjectState(key){
+  const cfg = MODULES[key];
+  const frame = document.getElementById(cfg.frameId);
+  if(frame && frame.dataset.loaded === '1'){
+    try{
+      const frameWin = frame.contentWindow;
+      if(frameWin && typeof frameWin.getProjectState === 'function'){
+        return cloneJson(frameWin.getProjectState());
+      }
+    }catch{}
+  }
+  return cloneJson(pendingModuleState[key]);
+}
+
+function captureDefaultModuleState(key){
+  const cfg = MODULES[key];
+  const frame = document.getElementById(cfg.frameId);
+  if(!frame || frame.dataset.loaded !== '1' || frame.dataset.defaultProjectStateCaptured === '1') return;
+  try{
+    const frameWin = frame.contentWindow;
+    if(frameWin && typeof frameWin.getProjectState === 'function'){
+      frame.dataset.defaultProjectState = JSON.stringify(frameWin.getProjectState());
+      frame.dataset.defaultProjectStateCaptured = '1';
+    }
+  }catch{}
+}
+
+function getDefaultModuleState(key){
+  const cfg = MODULES[key];
+  const frame = document.getElementById(cfg.frameId);
+  if(!frame || !frame.dataset.defaultProjectState) return null;
+  try{
+    return JSON.parse(frame.dataset.defaultProjectState);
+  }catch{
+    return null;
+  }
+}
+
+function collectProjectModulesState(){
+  return {
+    fitout:getFrameProjectState('fitout'),
+    store:getFrameProjectState('store'),
+    vehicles:getFrameProjectState('vehicles'),
+  };
+}
+
+function buildProjectRecord(projectIdOverride){
+  const now = new Date().toISOString();
+  const id = projectIdOverride || currentProjectId || createProjectId();
+  const existing = projectList.find(project=>project.id === id);
+  const ctx = getNormalizedContext();
+  const name = ctx.projectName || existing?.name || 'Untitled project';
+  return {
+    id,
+    name,
+    context: ctx,
+    modules: collectProjectModulesState(),
+    activeTab: activeKey,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+  };
+}
+
+function applyPendingProjectStateToFrame(key){
+  const cfg = MODULES[key];
+  const frame = document.getElementById(cfg.frameId);
+  if(!frame || frame.dataset.loaded !== '1') return false;
+  const state = pendingModuleState[key] || getDefaultModuleState(key);
+  if(!state) return false;
+  try{
+    const frameWin = frame.contentWindow;
+    if(frameWin && typeof frameWin.applyProjectState === 'function'){
+      frameWin.applyProjectState(cloneJson(state));
+      return true;
+    }
+  }catch{}
+  return false;
+}
+
+function setCurrentProjectId(id){
+  currentProjectId = id || '';
+  if(currentProjectId) localStorage.setItem(CURRENT_PROJECT_KEY, currentProjectId);
+  else localStorage.removeItem(CURRENT_PROJECT_KEY);
+}
+
+function renderProjectLibrary(){
+  const selector = document.getElementById('project-selector');
+  if(!selector) return;
+  const sorted = [...projectList].sort((a,b)=>{
+    const ad = a.updatedAt || '';
+    const bd = b.updatedAt || '';
+    return bd.localeCompare(ad);
+  });
+  selector.innerHTML = ['<option value="">Unsaved workspace</option>']
+    .concat(sorted.map(project=>`<option value="${project.id}">${project.name || 'Untitled project'}</option>`))
+    .join('');
+  selector.value = currentProjectId || '';
+  const status = document.getElementById('project-status');
+  if(status){
+    const current = sorted.find(project=>project.id === currentProjectId) || null;
+    status.textContent = current
+      ? `${current.name || 'Untitled project'} · Last saved ${new Date(current.updatedAt).toLocaleString('en-US')}`
+      : 'Unsaved workspace';
+  }
+}
+
+function fillContextInputs(){
+  document.getElementById('ctx-project-name').value = projectContext.projectName;
+  document.getElementById('ctx-context-type').value = projectContext.contextType;
+  document.getElementById('ctx-region-name').value = projectContext.regionName;
+  document.getElementById('ctx-line-length').value = projectContext.lineLengthKm;
+  document.getElementById('ctx-contract-years').value = projectContext.contractYears;
+  document.getElementById('ctx-currency').value = projectContext.currency;
+}
+
+function getNormalizedContext(){
+  const lineLengthRaw = String(projectContext.lineLengthKm ?? '').trim();
+  const lineLength = lineLengthRaw === '' ? null : Math.max(0, Number(lineLengthRaw));
+  const contractYearsRaw = String(projectContext.contractYears ?? '').trim();
+  const contractYears = contractYearsRaw === '' ? null : Math.max(1, Number(contractYearsRaw));
+  const currency = (projectContext.currency || DEFAULT_CONTEXT.currency).trim().toUpperCase() || 'EUR';
+  return {
+    projectName: projectContext.projectName.trim(),
+    contextType: projectContext.contextType.trim(),
+    regionName: projectContext.regionName.trim(),
+    lineLengthKm: Number.isFinite(lineLength) ? lineLength : null,
+    contractYears: Number.isFinite(contractYears) ? contractYears : null,
+    currency,
+  };
+}
+
+function setFrameInputValue(frameDoc, id, value){
+  if(value === null || value === undefined || value === '') return false;
+  const el = frameDoc.getElementById(id);
+  if(!el) return false;
+  if(String(el.value) === String(value)) return true;
+  el.value = value;
+  el.dispatchEvent(new Event('input', {bubbles:true}));
+  el.dispatchEvent(new Event('change', {bubbles:true}));
+  return true;
+}
+
+function captureFrameDefaults(key){
+  const cfg = MODULES[key];
+  const frame = document.getElementById(cfg.frameId);
+  if(!frame || frame.dataset.loaded !== '1' || frame.dataset.defaultsCaptured === '1') return;
+  const frameDoc = getFrameDoc(frame);
+  const frameWin = frame.contentWindow;
+  if(!frameDoc || !frameWin) return;
+
+  if(key === 'fitout'){
+    frame.dataset.defaultYears = frameDoc.getElementById('n_years')?.value || '';
+  }
+
+  if(key === 'vehicles'){
+    frame.dataset.defaultYears = frameDoc.getElementById('g_years')?.value || '';
+    frame.dataset.defaultLineLength = frameDoc.getElementById('g_line')?.value || '';
+  }
+
+  if(key === 'store'){
+    frame.dataset.defaultLineLength = frameWin.P && frameWin.P.L_line !== undefined && frameWin.P.L_line !== null
+      ? String(frameWin.P.L_line)
+      : '';
+  }
+
+  frame.dataset.defaultsCaptured = '1';
+}
+
+function applyContextToFrame(key){
+  const cfg = MODULES[key];
+  const frame = document.getElementById(cfg.frameId);
+  if(!frame || frame.dataset.loaded !== '1') return;
+  const frameWin = frame.contentWindow;
+  const frameDoc = getFrameDoc(frame);
+  const ctx = getNormalizedContext();
+  if(frameDoc) captureFrameDefaults(key);
+
+  try{ frameWin.DEPOT_SHARED_CONTEXT = ctx; }catch{}
+  try{ frameWin.postMessage({type:'depot-suite-context', context:ctx}, '*'); }catch{}
+
+  if(!frameDoc){
+    queueHeightSync(key);
+    return;
+  }
+
+  if(key === 'fitout'){
+    try{
+      if(typeof frameWin.applyHubContext === 'function'){
+        frameWin.applyHubContext(ctx);
+        queueHeightSync(key);
+        return;
+      }
+    }catch{}
+    const yearsValue = ctx.contractYears !== null ? String(ctx.contractYears) : (frame.dataset.defaultYears || '');
+    if(yearsValue) setFrameInputValue(frameDoc, 'n_years', yearsValue);
+    try{
+      if(typeof frameWin.update === 'function') frameWin.update();
+    }catch{}
+  }
+
+  if(key === 'vehicles'){
+    try{
+      if(typeof frameWin.applyHubContext === 'function'){
+        frameWin.applyHubContext(ctx);
+        queueHeightSync(key);
+        return;
+      }
+    }catch{}
+    const yearsValue = ctx.contractYears !== null ? String(ctx.contractYears) : (frame.dataset.defaultYears || '');
+    const lineValue = ctx.lineLengthKm !== null ? String(ctx.lineLengthKm) : (frame.dataset.defaultLineLength || '');
+    if(yearsValue) setFrameInputValue(frameDoc, 'g_years', yearsValue);
+    if(lineValue) setFrameInputValue(frameDoc, 'g_line', lineValue);
+    try{
+      if(typeof frameWin.update === 'function') frameWin.update();
+    }catch{}
+  }
+
+  if(key === 'store'){
+    try{
+      if(typeof frameWin.applyHubContext === 'function'){
+        frameWin.applyHubContext(ctx);
+        frame.dataset.appliedProfile = ctx.contextType || '';
+        queueHeightSync(key);
+        return;
+      }
+      const profileName = ctx.contextType && ['Metro','Tram','APM','Heavy Rail'].includes(ctx.contextType)
+        ? ctx.contextType
+        : '';
+      if(profileName && frame.dataset.appliedProfile !== profileName && typeof frameWin.loadProfile === 'function'){
+        frameWin.loadProfile(profileName);
+        frame.dataset.appliedProfile = profileName;
+      }else if(!profileName){
+        frame.dataset.appliedProfile = '';
+      }
+      if(frameWin.P){
+        const defaultLine = frame.dataset.defaultLineLength === '' ? null : Number(frame.dataset.defaultLineLength);
+        frameWin.P.L_line = ctx.lineLengthKm !== null ? ctx.lineLengthKm : defaultLine;
+      }
+      if(typeof frameWin.update === 'function') frameWin.update();
+    }catch{}
+  }
+
+  queueHeightSync(key);
+}
+
+function syncLoadedModules(){
+  TAB_ORDER.forEach(key=>applyContextToFrame(key));
+}
+
+function renderProjectContext(){
+  const ctx = getNormalizedContext();
+  const project = ctx.projectName || 'Project not set';
+  const contextType = ctx.contextType;
+  const region = ctx.regionName;
+  const years = ctx.contractYears ?? DEFAULT_CONTEXT.contractYears;
+  const currency = ctx.currency;
+  const lineLengthLabel = ctx.lineLengthKm === null ? 'not set' : `${ctx.lineLengthKm} km`;
+  const module = MODULES[activeKey];
+
+  const subParts = [project];
+  if(contextType) subParts.push(contextType);
+  if(region) subParts.push(region);
+  if(ctx.lineLengthKm !== null) subParts.push(`${ctx.lineLengthKm} km`);
+  subParts.push(`${years}y`);
+  subParts.push(currency);
+  document.getElementById('app-subtitle').textContent = subParts.join(' · ');
+
+  document.getElementById('summary-project').textContent = project;
+  document.getElementById('summary-project-sub').textContent =
+    [contextType || 'Context not set', region || 'Region not set'].join(' · ');
+
+  document.getElementById('summary-contract').textContent = `${years} years`;
+  document.getElementById('summary-contract-sub').textContent = `Currency: ${currency} · Line length: ${lineLengthLabel}`;
+
+  document.getElementById('summary-module').textContent = module.label;
+  document.getElementById('summary-module-sub').textContent = module.summary;
+
+  const sourceLabel = module.src;
+  const sourceLink = document.getElementById('summary-source-link');
+  document.getElementById('summary-source').textContent = sourceLabel;
+  sourceLink.textContent = `Open ${sourceLabel}`;
+  sourceLink.href = module.src;
+}
+
+function clearWorkspace(){
+  projectContext = {...DEFAULT_CONTEXT};
+  pendingModuleState = {fitout:null, store:null, vehicles:null};
+  fillContextInputs();
+  saveProjectContext();
+  renderProjectContext();
+  TAB_ORDER.forEach(key=>applyPendingProjectStateToFrame(key));
+  syncLoadedModules();
+}
+
+async function refreshProjectLibrary(){
+  projectList = await readAllProjectsFromDb();
+  renderProjectLibrary();
+}
+
+async function saveCurrentProject(projectIdOverride){
+  const record = buildProjectRecord(projectIdOverride);
+  await writeProjectToDb(record);
+  setCurrentProjectId(record.id);
+  projectList = projectList.filter(project=>project.id !== record.id).concat(record);
+  pendingModuleState = cloneJson(record.modules) || {fitout:null, store:null, vehicles:null};
+  projectContext = {...DEFAULT_CONTEXT, ...cloneJson(record.context || {})};
+  saveProjectContext();
+  renderProjectLibrary();
+  renderProjectContext();
+  return record;
+}
+
+async function loadProjectById(id){
+  if(!id){
+    setCurrentProjectId('');
+    clearWorkspace();
+    renderProjectLibrary();
+    return;
+  }
+  const record = await readProjectFromDb(id);
+  if(!record) return;
+  setCurrentProjectId(record.id);
+  projectContext = {...DEFAULT_CONTEXT, ...cloneJson(record.context || {})};
+  pendingModuleState = {
+    fitout: cloneJson(record.modules?.fitout),
+    store: cloneJson(record.modules?.store),
+    vehicles: cloneJson(record.modules?.vehicles),
+  };
+  fillContextInputs();
+  saveProjectContext();
+  renderProjectContext();
+  renderProjectLibrary();
+  TAB_ORDER.forEach(key=>{
+    applyPendingProjectStateToFrame(key);
+    applyContextToFrame(key);
+  });
+  const targetTab = record.activeTab && MODULES[record.activeTab] ? record.activeTab : activeKey;
+  activateTab(targetTab, false);
+}
+
+async function createNewProject(){
+  if(currentProjectId) await saveCurrentProject();
+  const suggested = projectContext.projectName || 'New Project';
+  const name = window.prompt('Project name', suggested);
+  if(name === null) return;
+  setCurrentProjectId('');
+  clearWorkspace();
+  projectContext.projectName = name.trim() || 'New Project';
+  fillContextInputs();
+  saveProjectContext();
+  renderProjectContext();
+  renderProjectLibrary();
+}
+
+async function duplicateCurrentProject(){
+  const source = buildProjectRecord();
+  const copyName = window.prompt('Duplicate project as', `${source.name || 'Untitled project'} Copy`);
+  if(copyName === null) return;
+  const duplicate = {
+    ...source,
+    id: createProjectId(),
+    name: copyName.trim() || `${source.name || 'Untitled project'} Copy`,
+    context: {...source.context, projectName: copyName.trim() || `${source.name || 'Untitled project'} Copy`},
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  await writeProjectToDb(duplicate);
+  projectList = projectList.filter(project=>project.id !== duplicate.id).concat(duplicate);
+  await loadProjectById(duplicate.id);
+}
+
+async function deleteCurrentProject(){
+  if(!currentProjectId) return;
+  const current = projectList.find(project=>project.id === currentProjectId);
+  const label = current?.name || 'this project';
+  if(!window.confirm(`Delete ${label}?`)) return;
+  await deleteProjectFromDb(currentProjectId);
+  setCurrentProjectId('');
+  projectList = projectList.filter(project=>project.id !== current?.id);
+  clearWorkspace();
+  renderProjectLibrary();
+}
+
+function bindContextInputs(){
+  const bindings = [
+    ['ctx-project-name','projectName'],
+    ['ctx-context-type','contextType'],
+    ['ctx-region-name','regionName'],
+    ['ctx-line-length','lineLengthKm'],
+    ['ctx-contract-years','contractYears'],
+    ['ctx-currency','currency'],
+  ];
+  bindings.forEach(([id,key])=>{
+    const el = document.getElementById(id);
+    const applyValue = e=>{
+      projectContext[key] = e.target.value;
+      saveProjectContext();
+      renderProjectContext();
+      syncLoadedModules();
+    };
+    el.addEventListener('input', applyValue);
+    el.addEventListener('change', applyValue);
+  });
+
+  document.getElementById('ctx-reset').addEventListener('click', ()=>{
+    projectContext = {...DEFAULT_CONTEXT};
+    fillContextInputs();
+    saveProjectContext();
+    renderProjectContext();
+    syncLoadedModules();
+  });
+}
+
+function bindProjectLibrary(){
+  document.getElementById('project-selector').addEventListener('change', async e=>{
+    const selectedProjectId = e.target.value;
+    if(currentProjectId) await saveCurrentProject();
+    await loadProjectById(selectedProjectId);
+  });
+
+  document.getElementById('project-save').addEventListener('click', async ()=>{
+    await saveCurrentProject();
+  });
+
+  document.getElementById('project-new').addEventListener('click', async ()=>{
+    await createNewProject();
+  });
+
+  document.getElementById('project-duplicate').addEventListener('click', async ()=>{
+    await duplicateCurrentProject();
+  });
+
+  document.getElementById('project-delete').addEventListener('click', async ()=>{
+    await deleteCurrentProject();
+  });
+}
+
+function setStatus(key, text, ready){
+  const el = document.getElementById(MODULES[key].statusId);
+  if(!el) return;
+  el.textContent = text;
+  el.classList.toggle('ready', !!ready);
+}
+
+function getFrameDoc(frame){
+  try{
+    return frame.contentDocument || frame.contentWindow.document;
+  }catch{
+    return null;
+  }
+}
+
+function syncFrameHeight(key){
+  const cfg = MODULES[key];
+  const frame = document.getElementById(cfg.frameId);
+  if(!frame || !frame.dataset.loaded) return;
+  const doc = getFrameDoc(frame);
+  if(!doc){
+    frame.style.height = cfg.defaultHeight + 'px';
+    return;
+  }
+  const body = doc.body;
+  const html = doc.documentElement;
+  if(!body || !html) return;
+  const height = Math.max(
+    cfg.defaultHeight,
+    body.scrollHeight,
+    body.offsetHeight,
+    html.scrollHeight,
+    html.offsetHeight,
+    html.clientHeight
+  );
+  frame.style.height = (height + 12) + 'px';
+}
+
+function queueHeightSync(key){
+  const delays = [80, 240, 700, 1400];
+  delays.forEach(delay=>window.setTimeout(()=>syncFrameHeight(key), delay));
+}
+
+function ensureLoaded(key, forceReload=false){
+  const cfg = MODULES[key];
+  const frame = document.getElementById(cfg.frameId);
+  const placeholder = document.getElementById(cfg.placeholderId);
+  if(!frame) return;
+
+  if(forceReload){
+    frame.dataset.loaded = '';
+    frame.dataset.defaultsCaptured = '';
+    frame.dataset.defaultYears = '';
+    frame.dataset.defaultLineLength = '';
+    frame.dataset.appliedProfile = '';
+    frame.dataset.defaultProjectState = '';
+    frame.dataset.defaultProjectStateCaptured = '';
+    frame.classList.add('hidden');
+    frame.removeAttribute('src');
+    if(placeholder) placeholder.style.display = 'flex';
+    setStatus(key, 'Reloading...', false);
+  }
+
+  if(frame.dataset.loaded === '1') {
+    setStatus(key, 'Loaded', true);
+    queueHeightSync(key);
+    return;
+  }
+
+  setStatus(key, 'Loading...', false);
+  frame.src = cfg.src;
+  frame.dataset.loaded = '1';
+}
+
+function activateTab(key, pushHash=true){
+  if(!MODULES[key]) key = 'fitout';
+  activeKey = key;
+
+  TAB_ORDER.forEach(name=>{
+    const panel = document.getElementById(MODULES[name].panelId);
+    const tab = document.getElementById(MODULES[name].tabId);
+    const jump = document.querySelector(`.jump-btn[data-jump="${name}"]`);
+    const active = name === key;
+    if(panel) panel.classList.toggle('active', active);
+    if(tab){
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      tab.setAttribute('tabindex', active ? '0' : '-1');
+    }
+    if(jump) jump.classList.toggle('active', active);
+  });
+
+  ensureLoaded(key);
+  queueHeightSync(key);
+  renderProjectContext();
+  captureDefaultModuleState(key);
+  applyPendingProjectStateToFrame(key);
+  applyContextToFrame(key);
+
+  localStorage.setItem('depot-suite-active-tab', key);
+  if(pushHash) history.replaceState(null, '', `#${key}`);
+}
+
+function reloadModule(key){
+  ensureLoaded(key, true);
+  window.setTimeout(()=>{
+    ensureLoaded(key, false);
+    queueHeightSync(key);
+  }, 40);
+}
+
+document.querySelectorAll('.main-tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>activateTab(btn.dataset.tab));
+});
+
+document.querySelectorAll('.jump-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>activateTab(btn.dataset.jump));
+});
+
+document.querySelectorAll('[data-reload]').forEach(btn=>{
+  btn.addEventListener('click', ()=>reloadModule(btn.dataset.reload));
+});
+
+Object.values(MODULES).forEach(cfg=>{
+  const frame = document.getElementById(cfg.frameId);
+  if(!frame) return;
+  frame.addEventListener('load', ()=>{
+    const placeholder = document.getElementById(cfg.placeholderId);
+    if(placeholder) placeholder.style.display = 'none';
+    frame.classList.remove('hidden');
+    setStatus(cfg.key, 'Loaded', true);
+    captureDefaultModuleState(cfg.key);
+    applyPendingProjectStateToFrame(cfg.key);
+    applyContextToFrame(cfg.key);
+    queueHeightSync(cfg.key);
+  });
+});
+
+window.addEventListener('resize', ()=>syncFrameHeight(activeKey));
+window.addEventListener('hashchange', ()=>{
+  const key = location.hash.replace('#','');
+  if(key && MODULES[key]) activateTab(key, false);
+});
+
+document.addEventListener('keydown', e=>{
+  if(!e.target.classList.contains('main-tab')) return;
+  const idx = TAB_ORDER.indexOf(activeKey);
+  if(e.key === 'ArrowRight'){
+    e.preventDefault();
+    const next = TAB_ORDER[(idx + 1) % TAB_ORDER.length];
+    activateTab(next);
+    document.getElementById(MODULES[next].tabId)?.focus();
+  }
+  if(e.key === 'ArrowLeft'){
+    e.preventDefault();
+    const prev = TAB_ORDER[(idx - 1 + TAB_ORDER.length) % TAB_ORDER.length];
+    activateTab(prev);
+    document.getElementById(MODULES[prev].tabId)?.focus();
+  }
+});
+
+const initialTab = (() => {
+  const fromHash = location.hash.replace('#','');
+  if(MODULES[fromHash]) return fromHash;
+  const stored = localStorage.getItem('depot-suite-active-tab');
+  if(MODULES[stored]) return stored;
+  return 'fitout';
+})();
+
+async function initHub(){
+  projectContext = loadProjectContext();
+  fillContextInputs();
+  bindContextInputs();
+  bindProjectLibrary();
+  renderProjectLibrary();
+  activateTab(initialTab, !!location.hash);
+  try{
+    await refreshProjectLibrary();
+    const storedProjectId = localStorage.getItem(CURRENT_PROJECT_KEY) || '';
+    if(storedProjectId){
+      await loadProjectById(storedProjectId);
+    }else{
+      renderProjectLibrary();
+    }
+  }catch{
+    renderProjectLibrary();
+  }
+}
+
+initHub();
+</script>
+</body>
+</html>
