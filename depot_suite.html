@@ -507,6 +507,7 @@ body{
 .frame-placeholder{
   position:absolute;
   inset:0;
+  z-index:2;
   display:flex;
   flex-direction:column;
   gap:14px;
@@ -534,8 +535,16 @@ body{
   border:none;
   display:block;
   background:#fff;
+  position:relative;
+  z-index:1;
 }
-.frame-shell.hidden{display:none}
+.frame-shell.hidden{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
 .footer-note{
   margin-top:18px;
   padding:12px 14px;
@@ -759,7 +768,7 @@ body{
                 <div class="placeholder-title">Fit-Out module loads on activation</div>
                 <div class="placeholder-copy">Content is injected on demand to keep the main interface light and avoid loading all three simulators at once.</div>
               </div>
-              <iframe class="frame-shell hidden" id="frame-fitout" title="Depot Fit-Out Estimator" loading="lazy" data-src="depot_fitout_v2.html"></iframe>
+              <iframe class="frame-shell hidden" id="frame-fitout" title="Depot Fit-Out Estimator" data-src="depot_fitout_v2.html"></iframe>
             </div>
           </div>
         </div>
@@ -790,7 +799,7 @@ body{
                 <div class="placeholder-title">Store sizing waiting to load</div>
                 <div class="placeholder-copy">The model keeps its SVG layout, formulas, and costing without colliding with the other simulators.</div>
               </div>
-              <iframe class="frame-shell hidden" id="frame-store" title="Store Pre-Sizing Model" loading="lazy" data-src="rail_store_En_Cost_Vref.html"></iframe>
+              <iframe class="frame-shell hidden" id="frame-store" title="Store Pre-Sizing Model" data-src="rail_store_En_Cost_Vref.html"></iframe>
             </div>
           </div>
         </div>
@@ -821,7 +830,7 @@ body{
                 <div class="placeholder-title">Vehicles & Washing waiting to load</div>
                 <div class="placeholder-copy">This panel keeps fuel and water calculations separate while making them accessible from the same workspace.</div>
               </div>
-              <iframe class="frame-shell hidden" id="frame-vehicles" title="Track Vehicles OPEX and Train Washing" loading="lazy" data-src="track_vehicles_washing_opex_v2.html"></iframe>
+              <iframe class="frame-shell hidden" id="frame-vehicles" title="Track Vehicles OPEX and Train Washing" data-src="track_vehicles_washing_opex_v2.html"></iframe>
             </div>
           </div>
         </div>
@@ -1471,6 +1480,24 @@ function queueHeightSync(key){
   delays.forEach(delay=>window.setTimeout(()=>syncFrameHeight(key), delay));
 }
 
+function verifyFrameRender(key){
+  const cfg = MODULES[key];
+  const frame = document.getElementById(cfg.frameId);
+  if(!frame || frame.dataset.loaded !== '1') return;
+  const doc = getFrameDoc(frame);
+  if(!doc || !doc.body) return;
+  const textLength = (doc.body.innerText || '').trim().length;
+  const childCount = doc.body.children ? doc.body.children.length : 0;
+  if(textLength > 0 || childCount > 0){
+    frame.dataset.blankRetry = '';
+    return;
+  }
+  if(frame.dataset.blankRetry === '1') return;
+  frame.dataset.blankRetry = '1';
+  setStatus(key, 'Blank render detected, retrying...', false);
+  reloadModule(key);
+}
+
 function ensureLoaded(key, forceReload=false){
   const cfg = MODULES[key];
   const frame = document.getElementById(cfg.frameId);
@@ -1479,6 +1506,8 @@ function ensureLoaded(key, forceReload=false){
 
   if(forceReload){
     frame.dataset.loaded = '';
+    frame.dataset.requested = '';
+    frame.dataset.blankRetry = '';
     frame.dataset.defaultsCaptured = '';
     frame.dataset.defaultYears = '';
     frame.dataset.defaultLineLength = '';
@@ -1496,10 +1525,14 @@ function ensureLoaded(key, forceReload=false){
     queueHeightSync(key);
     return;
   }
+  if(frame.dataset.requested === '1'){
+    setStatus(key, 'Loading...', false);
+    return;
+  }
 
   setStatus(key, 'Loading...', false);
-  frame.src = cfg.src;
-  frame.dataset.loaded = '1';
+  frame.src = new URL(cfg.src, window.location.href).toString();
+  frame.dataset.requested = '1';
 }
 
 function activateTab(key, pushHash=true){
@@ -1556,6 +1589,8 @@ Object.values(MODULES).forEach(cfg=>{
   if(!frame) return;
   frame.addEventListener('load', ()=>{
     const placeholder = document.getElementById(cfg.placeholderId);
+    frame.dataset.loaded = '1';
+    frame.dataset.requested = '1';
     if(placeholder) placeholder.style.display = 'none';
     frame.classList.remove('hidden');
     setStatus(cfg.key, 'Loaded', true);
@@ -1563,6 +1598,15 @@ Object.values(MODULES).forEach(cfg=>{
     applyPendingProjectStateToFrame(cfg.key);
     applyContextToFrame(cfg.key);
     queueHeightSync(cfg.key);
+    window.setTimeout(()=>verifyFrameRender(cfg.key), 350);
+  });
+  frame.addEventListener('error', ()=>{
+    const placeholder = document.getElementById(cfg.placeholderId);
+    if(placeholder) placeholder.style.display = 'flex';
+    frame.classList.add('hidden');
+    frame.dataset.loaded = '';
+    frame.dataset.requested = '';
+    setStatus(cfg.key, 'Load failed', false);
   });
 });
 
