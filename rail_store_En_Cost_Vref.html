@@ -216,6 +216,12 @@ body{font-family:var(--sans);background:var(--surface);color:var(--text);font-si
 .rate-row label{font-size:11px;font-weight:500;color:var(--tsec);white-space:nowrap}
 .rate-row input{font-family:var(--mono);font-size:13px;width:90px;padding:5px 8px;border:1.5px solid var(--border2);border-radius:5px;background:var(--amber-l);color:var(--amber);font-weight:600;text-align:right}
 .rate-row .rate-info{font-size:11px;color:var(--tsec);font-style:italic;flex:1}
+.toggle-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surf2);border:1px solid var(--border);border-radius:8px;margin-bottom:14px}
+.toggle-row input{width:18px;height:18px;accent-color:#1D4ED8}
+.toggle-row .toggle-copy{display:flex;flex-direction:column;gap:2px}
+.toggle-row .toggle-title{font-size:12px;font-weight:600;color:var(--text)}
+.toggle-row .toggle-hint{font-size:11px;color:var(--tsec);line-height:1.5}
+.cost-disabled{opacity:.55}
 
 </style>
 </head>
@@ -412,6 +418,7 @@ function getProjectState(){
     costing:{
       region:COST.region,
       prices:{...COST.prices},
+      includeStore:COST.includeStore,
     },
     activeProfile:ACTIVE_PROFILE,
     activeTab:document.querySelector('.tab-btn.active')?.dataset.tab || 'tab-inputs',
@@ -430,6 +437,7 @@ function applyProjectState(state){
     if(state.costing.region && REGIONS[state.costing.region]){
       COST.region = state.costing.region;
     }
+    COST.includeStore = state.costing.includeStore !== false;
     if(state.costing.prices && typeof state.costing.prices==='object'){
       COST.prices = {...COST.prices, ...state.costing.prices};
     }else if(REGIONS[COST.region]){
@@ -961,16 +969,17 @@ function update(){
 function getSummaryMetrics(){
   recalc();
   const CP = COST.prices;
-  const totalEquipmentCapex = Math.round(
+  const totalEquipmentCapex = COST.includeStore ? Math.round(
     (C.pal_bays || 0) * CP.pal +
     (C.she_modules || 0) * CP.she +
     (C.can_bays || 0) * CP.can +
     (C.flo_places || 0) * CP.flo +
     (C.ded_m2 || 0) * CP.ded
-  );
+  ) : 0;
   return {
     currency:getCurrencyCode(),
     region:COST.region,
+    includeStore:COST.includeStore,
     totalEquipmentCapex,
   };
 }
@@ -1008,6 +1017,7 @@ function getStoreGeometryNote(type){
 
 function getExportRows(){
   recalc();
+  if(!COST.includeStore) return [];
   const CP = COST.prices;
   const lines = [
     {equipmentType:'Pallet rack bays', qty:C.pal_bays,   unit:'bays',   unitPrice:CP.pal},
@@ -1088,6 +1098,7 @@ const REGIONS = {
 const COST = {
   region: 'North Africa',
   prices: {pal:600, she:175, can:390, flo:60, ded:92},
+  includeStore: true,
 };
 function normalizeSharedRegionName(name){
   const raw = typeof name === 'string' ? name.trim() : '';
@@ -1128,10 +1139,23 @@ function loadRegion(name){
   publishSummaryMetrics();
 }
 
+function setStoreCostingIncluded(included){
+  COST.includeStore = !!included;
+  renderCosting();
+  publishSummaryMetrics();
+}
+
 function renderCosting(){
   if(!C.S_net) return;
   const CP = COST.prices;
   const currency = getCurrencyCode();
+  const includeStore = COST.includeStore !== false;
+  const costingToggle = document.getElementById('cost-include-store');
+  if(costingToggle) costingToggle.checked = includeStore;
+  const pricingCard = document.getElementById('cost-pricing-card');
+  const breakdownCard = document.getElementById('cost-breakdown-card');
+  if(pricingCard) pricingCard.classList.toggle('cost-disabled', !includeStore);
+  if(breakdownCard) breakdownCard.classList.toggle('cost-disabled', !includeStore);
 
   // Region buttons
   document.getElementById('region-btns').innerHTML = Object.keys(REGIONS).map(rg=>
@@ -1154,7 +1178,7 @@ function renderCosting(){
     <td style="font-size:11px;color:var(--tsec)">${t.unit}</td>
     <td style="text-align:right">
       <input type="number" value="${CP[t.key]}" min="0" step="10"
-        oninput="COST.prices['${t.key}']=+this.value;renderCosting()">
+        oninput="COST.prices['${t.key}']=+this.value;renderCosting()" ${includeStore ? '' : 'disabled'}>
     </td>
   </tr>`).join('')}
   </tbody>`;
@@ -1169,7 +1193,7 @@ function renderCosting(){
   ];
   let total = 0;
   const rows = lines.map(l=>{
-    const sub = Math.round((l.qty||0)*l.price);
+    const sub = includeStore ? Math.round((l.qty||0)*l.price) : 0;
     total += sub;
     return `<tr>
       <td><span style="background:${l.fill};color:${l.tc};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">${l.label}</span></td>
@@ -1189,7 +1213,7 @@ function renderCosting(){
   </tr></thead><tbody>
   ${rows.join('')}
   <tr class="total-row">
-    <td colspan="4" style="text-align:right;letter-spacing:.03em">TOTAL EQUIPMENT CAPEX</td>
+    <td colspan="4" style="text-align:right;letter-spacing:.03em">${includeStore ? 'TOTAL EQUIPMENT CAPEX' : 'TOTAL EQUIPMENT CAPEX (EXCLUDED)'}</td>
     <td style="font-family:var(--mono);text-align:right;font-weight:700;color:var(--blue)">${fmtEUR(total)}</td>
   </tr>
   </tbody>`;
@@ -1198,10 +1222,10 @@ function renderCosting(){
   const perPos = C.pal_rec>0 ? Math.round(total/C.pal_rec) : 0;
   const palShare = total>0 ? Math.round(Math.round((C.pal_bays||0)*CP.pal)/total*100) : 0;
   document.getElementById('cost-kpi-row').innerHTML = [
-    {label:'Total CAPEX',            val:fmtEUR(total),           unit:'all equipment · supplied + installed', cls:'blue'},
-    {label:'Cost per pallet position',val:perPos>0?fmtEUR(perPos):'—', unit:'indicative lifecycle reference',  cls:'green'},
-    {label:'Pallet rack share',       val:palShare+'%',            unit:'of total equipment CAPEX',             cls:'amber'},
-    {label:'Region',                  val:COST.region,             unit:`Reference prices — all ${currency}`,   cls:'purple'},
+    {label:'Total CAPEX',            val:fmtEUR(total),           unit:includeStore?'all equipment · supplied + installed':'excluded from costing', cls:'blue'},
+    {label:'Cost per pallet position',val:includeStore && perPos>0?fmtEUR(perPos):'—', unit:includeStore?'indicative lifecycle reference':'not counted while excluded',  cls:'green'},
+    {label:'Pallet rack share',       val:includeStore?palShare+'%':'Excluded', unit:includeStore?'of total equipment CAPEX':'store capex not counted', cls:'amber'},
+    {label:'Region',                  val:COST.region,             unit:includeStore?`Reference prices — all ${currency}`:`Prices kept for later reactivation — ${currency}`,   cls:'purple'},
   ].map(k=>`<div class="kpi-card ${k.cls}">
     <div class="kpi-label">${k.label}</div>
     <div class="kpi-value" style="font-size:${k.val.length>9?'16px':'24px'}">${k.val}</div>
@@ -1701,8 +1725,15 @@ window.addEventListener('resize',()=>{
 
   <div class="cost-two">
     <div>
-      <div class="card" style="margin-bottom:0">
+      <div class="card" id="cost-pricing-card" style="margin-bottom:0">
         <div class="card-header"><div class="card-dot" style="background:#3B82F6"></div>Region & reference prices</div>
+        <div class="toggle-row">
+          <input type="checkbox" id="cost-include-store" checked onchange="setStoreCostingIncluded(this.checked)">
+          <div class="toggle-copy">
+            <div class="toggle-title">Include Store Pre-Sizing</div>
+            <div class="toggle-hint">When unchecked, the store remains sized but is excluded from costing, Synthesis, and RFQ export.</div>
+          </div>
+        </div>
         <div class="section-title" style="margin-bottom:8px">Select region</div>
         <div class="region-btns" id="region-btns"></div>
         
@@ -1712,7 +1743,7 @@ window.addEventListener('resize',()=>{
       </div>
     </div>
     <div>
-      <div class="card" style="margin-bottom:12px">
+      <div class="card" id="cost-breakdown-card" style="margin-bottom:12px">
         <div class="card-header"><div class="card-dot" style="background:#10B981"></div>Cost breakdown</div>
         <table class="cost-table" id="cost-table"></table>
       </div>
