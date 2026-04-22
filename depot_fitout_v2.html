@@ -452,6 +452,29 @@ function calcTotals(){
   return {byCat,totalCap,totalRec,total:totalCap+totalRec*P.n_years};
 }
 
+function getSummaryMetrics(){
+  const totals = calcTotals();
+  return {
+    currency:getCurrencyCode(),
+    contractYears:P.n_years,
+    totalCapex:totals.totalCap,
+    annualRecurring:totals.totalRec,
+    totalOverContract:totals.total,
+  };
+}
+
+function publishSummaryMetrics(){
+  try{
+    if(window.parent && window.parent !== window){
+      window.parent.postMessage({
+        type:'depot-suite-summary',
+        source:'fitout',
+        metrics:getSummaryMetrics(),
+      }, '*');
+    }
+  }catch{}
+}
+
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function sw(id){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
@@ -547,6 +570,7 @@ function syncItemChanges(){
   renderInputsKpi();
   renderItems();
   if(document.getElementById('tab-summary').classList.contains('active')) renderSummary();
+  publishSummaryMetrics();
 }
 
 function renderSummary(){
@@ -600,6 +624,7 @@ function update(){
   renderInputsKpi();
   if(document.getElementById('tab-items').classList.contains('active')) renderItems();
   if(document.getElementById('tab-summary').classList.contains('active')) renderSummary();
+  publishSummaryMetrics();
 }
 
 // also update contract years live
@@ -609,11 +634,17 @@ document.getElementById('n_years').addEventListener('input', function(){P.n_year
 window.applyHubContext = applySharedContext;
 window.getProjectState = getProjectState;
 window.applyProjectState = applyProjectState;
+window.getSummaryMetrics = getSummaryMetrics;
 window.addEventListener('message', e=>{
   const data = e.data;
   if(!data || typeof data !== 'object') return;
-  if(data.type !== 'depot-suite-context') return;
-  applySharedContext(data.context);
+  if(data.type === 'depot-suite-context'){
+    applySharedContext(data.context);
+    return;
+  }
+  if(data.type === 'depot-suite-summary-request'){
+    publishSummaryMetrics();
+  }
 });
 update();
 </script>

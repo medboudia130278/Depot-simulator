@@ -750,6 +750,35 @@ function calcWash(){
   return {gross_per_wash, det_per_wash, washes_per_train, washes_total, gross_water_total_L, net_per_wash, water_total_L, water_m3, water_cost, det_total_L, det_cost, total};
 }
 
+function getSummaryMetrics(){
+  const all = calcAll();
+  const wash = calcWash();
+  const annualFuelCost = all.reduce((sum,v)=>sum+v.calc.fuel_cost,0);
+  const annualVehicleWaterCost = all.reduce((sum,v)=>sum+v.calc.water_cost,0);
+  const annualWaterAndDetergent = annualVehicleWaterCost + wash.water_cost + wash.det_cost;
+  const annualOpex = annualFuelCost + annualWaterAndDetergent;
+  return {
+    currency:getCurrencyCode(),
+    contractYears:G.years,
+    annualFuelCost,
+    annualWaterAndDetergent,
+    annualOpex,
+    totalOverContract:annualOpex * G.years,
+  };
+}
+
+function publishSummaryMetrics(){
+  try{
+    if(window.parent && window.parent !== window){
+      window.parent.postMessage({
+        type:'depot-suite-summary',
+        source:'vehicles',
+        metrics:getSummaryMetrics(),
+      }, '*');
+    }
+  }catch{}
+}
+
 function updateWash(){
   ['w_trains','w_length','w_freq','w_gross','w_recycle','w_wprice','w_det_qty','w_det_price'].forEach(k=>{
     const el=document.getElementById(k);
@@ -758,6 +787,7 @@ function updateWash(){
   renderWash();
   if(document.getElementById('pane-results').classList.contains('active')) renderResults();
   if(document.getElementById('pane-washing').classList.contains('active')) renderWash();
+  publishSummaryMetrics();
 }
 
 function renderWash(){
@@ -829,6 +859,7 @@ function update(){
   if(document.getElementById('pane-vehicles').classList.contains('active')) renderVehicles();
   if(document.getElementById('pane-results').classList.contains('active')) renderResults();
   if(document.getElementById('pane-washing').classList.contains('active')) renderWash();
+  publishSummaryMetrics();
 }
 
 // ── INIT — load 3 default vehicles ────────────────────────────────────────────
@@ -838,11 +869,17 @@ addVehicle('grinding');
 window.applyHubContext = applySharedContext;
 window.getProjectState = getProjectState;
 window.applyProjectState = applyProjectState;
+window.getSummaryMetrics = getSummaryMetrics;
 window.addEventListener('message', e=>{
   const data = e.data;
   if(!data || typeof data !== 'object') return;
-  if(data.type !== 'depot-suite-context') return;
-  applySharedContext(data.context);
+  if(data.type === 'depot-suite-context'){
+    applySharedContext(data.context);
+    return;
+  }
+  if(data.type === 'depot-suite-summary-request'){
+    publishSummaryMetrics();
+  }
 });
 updateWash();
 update();

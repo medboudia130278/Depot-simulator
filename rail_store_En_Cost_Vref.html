@@ -955,6 +955,36 @@ function update(){
   if(document.getElementById('tab-results').classList.contains('active')) renderResults();
   if(document.getElementById('tab-layout').classList.contains('active')){initZones();renderSVG();}
   if(document.getElementById('tab-cost').classList.contains('active')) renderCosting();
+  publishSummaryMetrics();
+}
+
+function getSummaryMetrics(){
+  recalc();
+  const CP = COST.prices;
+  const totalEquipmentCapex = Math.round(
+    (C.pal_bays || 0) * CP.pal +
+    (C.she_modules || 0) * CP.she +
+    (C.can_bays || 0) * CP.can +
+    (C.flo_places || 0) * CP.flo +
+    (C.ded_m2 || 0) * CP.ded
+  );
+  return {
+    currency:getCurrencyCode(),
+    region:COST.region,
+    totalEquipmentCapex,
+  };
+}
+
+function publishSummaryMetrics(){
+  try{
+    if(window.parent && window.parent !== window){
+      window.parent.postMessage({
+        type:'depot-suite-summary',
+        source:'store',
+        metrics:getSummaryMetrics(),
+      }, '*');
+    }
+  }catch{}
 }
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
@@ -966,11 +996,17 @@ renderAssumTab();
 window.applyHubContext = applySharedContext;
 window.getProjectState = getProjectState;
 window.applyProjectState = applyProjectState;
+window.getSummaryMetrics = getSummaryMetrics;
 window.addEventListener('message', e=>{
   const data = e.data;
   if(!data || typeof data !== 'object') return;
-  if(data.type !== 'depot-suite-context') return;
-  applySharedContext(data.context);
+  if(data.type === 'depot-suite-context'){
+    applySharedContext(data.context);
+    return;
+  }
+  if(data.type === 'depot-suite-summary-request'){
+    publishSummaryMetrics();
+  }
 });
 
 // ─── COSTING ─────────────────────────────────────────────────────────────────
@@ -1024,6 +1060,7 @@ function loadRegion(name){
   COST.region = name;
   COST.prices = {...REGIONS[name].prices};
   renderCosting();
+  publishSummaryMetrics();
 }
 
 function renderCosting(){
@@ -1105,6 +1142,7 @@ function renderCosting(){
     <div class="kpi-value" style="font-size:${k.val.length>9?'16px':'24px'}">${k.val}</div>
     <div class="kpi-unit">${k.unit}</div>
   </div>`).join('');
+  publishSummaryMetrics();
 }
 
 window.addEventListener('resize',()=>{

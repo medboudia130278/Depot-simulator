@@ -386,15 +386,29 @@ body{
   border-color:var(--bg);
 }
 .stage{
+  position:relative;
   display:flex;
   flex-direction:column;
   gap:18px;
 }
 .module-panel{
-  display:none;
+  position:absolute;
+  left:-200vw;
+  top:0;
+  width:100%;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  overflow:hidden;
 }
 .module-panel.active{
-  display:block;
+  position:relative;
+  left:auto;
+  top:auto;
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+  overflow:visible;
 }
 .module-shell{
   background:rgba(255,255,255,.86);
@@ -555,6 +569,102 @@ body{
   color:var(--text2);
   line-height:1.6;
 }
+.synth-wrap{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.synth-context-grid,
+.synth-kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+.synth-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px 16px;
+}
+.synth-card-label{
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text3);
+  margin-bottom:8px;
+}
+.synth-card-value{
+  font-size:22px;
+  line-height:1.1;
+  font-weight:600;
+  color:var(--text);
+}
+.synth-card-sub{
+  margin-top:6px;
+  font-size:11px;
+  color:var(--text2);
+  line-height:1.5;
+}
+.synth-table-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+}
+.synth-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+}
+.synth-table th{
+  background:var(--surface2);
+  padding:10px 12px;
+  text-align:left;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--text2);
+  border-bottom:1px solid var(--border);
+}
+.synth-table td{
+  padding:11px 12px;
+  border-bottom:1px solid var(--border);
+  vertical-align:middle;
+}
+.synth-table tr:last-child td{
+  border-bottom:none;
+}
+.synth-table .nr{
+  text-align:right;
+  font-family:var(--mono);
+}
+.synth-table .group{
+  font-weight:600;
+  color:var(--text);
+}
+.synth-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:600;
+}
+.synth-pill.fitout{background:var(--blueL);color:var(--blueD)}
+.synth-pill.vehicles{background:var(--tealL);color:var(--teal)}
+.synth-pill.store{background:var(--purpleL);color:var(--purple)}
+.synth-empty{
+  padding:18px;
+  border:1px dashed var(--border);
+  border-radius:14px;
+  background:rgba(241,245,249,.55);
+  color:var(--text2);
+  font-size:12px;
+  line-height:1.6;
+}
 @media(max-width:1060px){
   .hero{grid-template-columns:1fr}
   .context-strip{grid-template-columns:1fr}
@@ -572,6 +682,8 @@ body{
   .app-subtitle{display:none}
   .frame-stage,
   .frame-shell{min-height:900px}
+  .synth-context-grid,
+  .synth-kpi-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -592,6 +704,7 @@ body{
       <button class="main-tab active" id="tab-fitout" role="tab" aria-selected="true" aria-controls="panel-fitout" data-tab="fitout">① Depot Fit-Out</button>
       <button class="main-tab" id="tab-store" role="tab" aria-selected="false" aria-controls="panel-store" data-tab="store">② Store Pre-Sizing</button>
       <button class="main-tab" id="tab-vehicles" role="tab" aria-selected="false" aria-controls="panel-vehicles" data-tab="vehicles">③ Vehicles & Washing</button>
+      <button class="main-tab" id="tab-synthesis" role="tab" aria-selected="false" aria-controls="panel-synthesis" data-tab="synthesis">④ Synthesis</button>
     </nav>
   </div>
 
@@ -835,6 +948,36 @@ body{
           </div>
         </div>
       </section>
+
+      <section class="module-panel" id="panel-synthesis" role="tabpanel" aria-labelledby="tab-synthesis">
+        <div class="module-shell">
+          <div class="module-head">
+            <div>
+              <div class="module-title-row">
+                <h2 class="module-title">Project Synthesis</h2>
+                <span class="module-badge store">READ-ONLY SUMMARY</span>
+              </div>
+              <div class="module-copy">Cross-module snapshot for the active project context. This tab reads the current figures from Fit-Out, Vehicles & Washing, and Store without changing their internal models.</div>
+            </div>
+            <div class="module-actions">
+              <button class="frame-btn" type="button" id="synth-refresh">Refresh</button>
+            </div>
+          </div>
+          <div class="frame-wrap">
+            <div class="frame-meta">
+              <div class="frame-status" id="status-synthesis">Waiting for module data</div>
+              <div class="frame-note">The first opening may take a moment because the three simulators are loaded in the background to collect their current KPIs.</div>
+            </div>
+            <div class="synth-wrap">
+              <div class="synth-context-grid" id="synth-context-grid"></div>
+              <div class="synth-kpi-grid" id="synth-kpi-grid"></div>
+              <div class="synth-table-card">
+                <table class="synth-table" id="synth-table"></table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </section>
 
     <div class="footer-note">Possible next step: add a fourth cross-module synthesis tab with a few shared parameters, without breaking the independence of the existing simulators.</div>
@@ -879,9 +1022,19 @@ const MODULES = {
     placeholderId:'placeholder-vehicles',
     defaultHeight:1700,
   },
+  synthesis:{
+    key:'synthesis',
+    label:'Synthesis',
+    summary:'Cross-module project snapshot.',
+    src:'',
+    panelId:'panel-synthesis',
+    tabId:'tab-synthesis',
+    statusId:'status-synthesis',
+  },
 };
 
-const TAB_ORDER = ['fitout','store','vehicles'];
+const EMBEDDED_KEYS = ['fitout','store','vehicles'];
+const TAB_ORDER = ['fitout','store','vehicles','synthesis'];
 const CONTEXT_KEY = 'depot-suite-project-context';
 const PROJECT_DB_NAME = 'depot-suite-projects';
 const PROJECT_DB_VERSION = 1;
@@ -900,6 +1053,8 @@ let projectContext = {...DEFAULT_CONTEXT};
 let currentProjectId = '';
 let pendingModuleState = {fitout:null, store:null, vehicles:null};
 let projectList = [];
+let synthesisRefreshTimer = 0;
+let summaryMetricsCache = {fitout:null, store:null, vehicles:null};
 
 function loadProjectContext(){
   try{
@@ -998,6 +1153,10 @@ function createProjectId(){
 
 function cloneJson(value){
   return value == null ? null : JSON.parse(JSON.stringify(value));
+}
+
+function resetSummaryMetricsCache(){
+  summaryMetricsCache = {fitout:null, store:null, vehicles:null};
 }
 
 function getFrameProjectState(key){
@@ -1246,7 +1405,201 @@ function applyContextToFrame(key){
 }
 
 function syncLoadedModules(){
-  TAB_ORDER.forEach(key=>applyContextToFrame(key));
+  EMBEDDED_KEYS.forEach(key=>applyContextToFrame(key));
+}
+
+function formatCurrencyValue(value, currency){
+  if(!Number.isFinite(Number(value))) return '—';
+  const code = (currency || 'EUR').toUpperCase();
+  try{
+    return new Intl.NumberFormat('en-US', {
+      style:'currency',
+      currency:code,
+      maximumFractionDigits:0,
+    }).format(Math.round(Number(value)));
+  }catch{
+    return `${code} ${Math.round(Number(value)).toLocaleString('en-US')}`;
+  }
+}
+
+function getFrameSummaryMetrics(key){
+  if(!EMBEDDED_KEYS.includes(key)) return null;
+  if(summaryMetricsCache[key]) return cloneJson(summaryMetricsCache[key]);
+  const cfg = MODULES[key];
+  const frame = document.getElementById(cfg.frameId);
+  if(!frame || frame.dataset.loaded !== '1') return null;
+  try{
+    const frameWin = frame.contentWindow;
+    if(frameWin && typeof frameWin.getSummaryMetrics === 'function'){
+      return cloneJson(frameWin.getSummaryMetrics());
+    }
+  }catch{}
+  return null;
+}
+
+function loadSynthesisDependencies(){
+  EMBEDDED_KEYS.forEach(key=>{
+    ensureLoaded(key);
+    const frame = document.getElementById(MODULES[key].frameId);
+    if(frame && frame.dataset.loaded === '1'){
+      try{
+        frame.contentWindow?.postMessage({type:'depot-suite-summary-request'}, '*');
+      }catch{}
+    }
+  });
+}
+
+function renderSynthesis(){
+  if(synthesisRefreshTimer){
+    window.clearTimeout(synthesisRefreshTimer);
+    synthesisRefreshTimer = 0;
+  }
+  loadSynthesisDependencies();
+  const ctx = getNormalizedContext();
+  const fitout = getFrameSummaryMetrics('fitout');
+  const vehicles = getFrameSummaryMetrics('vehicles');
+  const store = getFrameSummaryMetrics('store');
+  const loadedCount = [fitout, vehicles, store].filter(Boolean).length;
+  const allReady = loadedCount === EMBEDDED_KEYS.length;
+  const currency = ctx.currency || 'EUR';
+
+  setStatus(
+    'synthesis',
+    allReady ? 'Synthesis ready' : `Loading module data (${loadedCount}/${EMBEDDED_KEYS.length})`,
+    allReady
+  );
+
+  const contextCards = [
+    {
+      label:'Project',
+      value:ctx.projectName || 'Project not set',
+      sub:[ctx.contextType || 'Context not set', ctx.regionName || 'Region not set'].join(' · '),
+    },
+    {
+      label:'Commercial context',
+      value:ctx.contextType || 'Not set',
+      sub:`Region: ${ctx.regionName || 'Not set'}`,
+    },
+    {
+      label:'Contract frame',
+      value:`${ctx.contractYears ?? DEFAULT_CONTEXT.contractYears} years`,
+      sub:`Currency: ${currency}${ctx.lineLengthKm !== null ? ` · Line length: ${ctx.lineLengthKm} km` : ''}`,
+    },
+  ];
+  document.getElementById('synth-context-grid').innerHTML = contextCards.map(card=>`
+    <div class="synth-card">
+      <div class="synth-card-label">${card.label}</div>
+      <div class="synth-card-value">${card.value}</div>
+      <div class="synth-card-sub">${card.sub}</div>
+    </div>
+  `).join('');
+
+  const kpis = [
+    {
+      label:'Fit-Out CAPEX',
+      value:fitout ? formatCurrencyValue(fitout.totalCapex, currency) : 'Loading…',
+      sub:'One-time depot fit-out investment',
+    },
+    {
+      label:'Fit-Out Annual Recurring',
+      value:fitout ? formatCurrencyValue(fitout.annualRecurring, currency) : 'Loading…',
+      sub:'Consumables, maintenance, PPE, licences',
+    },
+    {
+      label:'Fit-Out Total Over Contract',
+      value:fitout ? formatCurrencyValue(fitout.totalOverContract, currency) : 'Loading…',
+      sub:`CAPEX + recurring × ${ctx.contractYears ?? DEFAULT_CONTEXT.contractYears} years`,
+    },
+    {
+      label:'Water, Detergent & Fuel Annual OPEX',
+      value:vehicles ? formatCurrencyValue(vehicles.annualOpex, currency) : 'Loading…',
+      sub:'Vehicles and train washing combined',
+    },
+    {
+      label:'Water, Detergent & Fuel Total Over Contract',
+      value:vehicles ? formatCurrencyValue(vehicles.totalOverContract, currency) : 'Loading…',
+      sub:`Annual OPEX × ${ctx.contractYears ?? DEFAULT_CONTEXT.contractYears} years`,
+    },
+    {
+      label:'Store Equipment CAPEX',
+      value:store ? formatCurrencyValue(store.totalEquipmentCapex, currency) : 'Loading…',
+      sub:store ? `Reference region: ${store.region}` : 'Recommended installed equipment only',
+    },
+  ];
+  document.getElementById('synth-kpi-grid').innerHTML = kpis.map(card=>`
+    <div class="synth-card">
+      <div class="synth-card-label">${card.label}</div>
+      <div class="synth-card-value">${card.value}</div>
+      <div class="synth-card-sub">${card.sub}</div>
+    </div>
+  `).join('');
+
+  if(!allReady){
+    document.getElementById('synth-table').innerHTML = `
+      <tbody>
+        <tr>
+          <td class="synth-empty">The synthesis is loading the three simulators in the background to collect their current figures. Open this tab again in a moment if one module stays in loading state.</td>
+        </tr>
+      </tbody>`;
+    if(activeKey === 'synthesis'){
+      synthesisRefreshTimer = window.setTimeout(()=>renderSynthesis(), 900);
+    }
+    return;
+  }
+
+  const rows = [
+    {
+      pill:'fitout',
+      label:'Fit-Out',
+      metric:'Depot fit-out budget view',
+      capex:formatCurrencyValue(fitout.totalCapex, currency),
+      annual:formatCurrencyValue(fitout.annualRecurring, currency),
+      contract:formatCurrencyValue(fitout.totalOverContract, currency),
+      note:'CAPEX + recurring over contract duration',
+    },
+    {
+      pill:'vehicles',
+      label:'Vehicles & Washing',
+      metric:'Fuel, water and detergent OPEX',
+      capex:'—',
+      annual:formatCurrencyValue(vehicles.annualOpex, currency),
+      contract:formatCurrencyValue(vehicles.totalOverContract, currency),
+      note:`Fuel share ${formatCurrencyValue(vehicles.annualFuelCost, currency)}`,
+    },
+    {
+      pill:'store',
+      label:'Store',
+      metric:'Equipment CAPEX',
+      capex:formatCurrencyValue(store.totalEquipmentCapex, currency),
+      annual:'—',
+      contract:'—',
+      note:`Reference region ${store.region}`,
+    },
+  ];
+
+  document.getElementById('synth-table').innerHTML = `
+    <thead>
+      <tr>
+        <th>Module</th>
+        <th>Scope</th>
+        <th class="nr">Capex</th>
+        <th class="nr">Annual</th>
+        <th class="nr">Contract</th>
+        <th>Note</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map(row=>`
+        <tr>
+          <td class="group"><span class="synth-pill ${row.pill}">${row.label}</span></td>
+          <td>${row.metric}</td>
+          <td class="nr">${row.capex}</td>
+          <td class="nr">${row.annual}</td>
+          <td class="nr">${row.contract}</td>
+          <td>${row.note}</td>
+        </tr>
+      `).join('')}
+    </tbody>`;
 }
 
 function renderProjectContext(){
@@ -1277,21 +1630,32 @@ function renderProjectContext(){
   document.getElementById('summary-module').textContent = module.label;
   document.getElementById('summary-module-sub').textContent = module.summary;
 
-  const sourceLabel = module.src;
+  const sourceLabel = module.src || 'Hub overview';
   const sourceLink = document.getElementById('summary-source-link');
   document.getElementById('summary-source').textContent = sourceLabel;
-  sourceLink.textContent = `Open ${sourceLabel}`;
-  sourceLink.href = module.src;
+  if(module.src){
+    sourceLink.textContent = `Open ${sourceLabel}`;
+    sourceLink.href = module.src;
+    sourceLink.style.pointerEvents = '';
+    sourceLink.style.opacity = '';
+  }else{
+    sourceLink.textContent = 'Synthesis has no standalone source file';
+    sourceLink.removeAttribute('href');
+    sourceLink.style.pointerEvents = 'none';
+    sourceLink.style.opacity = '.6';
+  }
 }
 
 function clearWorkspace(){
   projectContext = {...DEFAULT_CONTEXT};
   pendingModuleState = {fitout:null, store:null, vehicles:null};
+  resetSummaryMetricsCache();
   fillContextInputs();
   saveProjectContext();
   renderProjectContext();
-  TAB_ORDER.forEach(key=>applyPendingProjectStateToFrame(key));
+  EMBEDDED_KEYS.forEach(key=>applyPendingProjectStateToFrame(key));
   syncLoadedModules();
+  if(activeKey === 'synthesis') renderSynthesis();
 }
 
 async function refreshProjectLibrary(){
@@ -1328,11 +1692,12 @@ async function loadProjectById(id){
     store: cloneJson(record.modules?.store),
     vehicles: cloneJson(record.modules?.vehicles),
   };
+  resetSummaryMetricsCache();
   fillContextInputs();
   saveProjectContext();
   renderProjectContext();
   renderProjectLibrary();
-  TAB_ORDER.forEach(key=>{
+  EMBEDDED_KEYS.forEach(key=>{
     applyPendingProjectStateToFrame(key);
     applyContextToFrame(key);
   });
@@ -1399,6 +1764,7 @@ function bindContextInputs(){
       saveProjectContext();
       renderProjectContext();
       syncLoadedModules();
+      if(activeKey === 'synthesis') renderSynthesis();
     };
     el.addEventListener('input', applyValue);
     el.addEventListener('change', applyValue);
@@ -1410,6 +1776,7 @@ function bindContextInputs(){
     saveProjectContext();
     renderProjectContext();
     syncLoadedModules();
+    if(activeKey === 'synthesis') renderSynthesis();
   });
 }
 
@@ -1505,6 +1872,7 @@ function ensureLoaded(key, forceReload=false){
   if(!frame) return;
 
   if(forceReload){
+    if(EMBEDDED_KEYS.includes(key)) summaryMetricsCache[key] = null;
     frame.dataset.loaded = '';
     frame.dataset.requested = '';
     frame.dataset.blankRetry = '';
@@ -1553,12 +1921,17 @@ function activateTab(key, pushHash=true){
     if(jump) jump.classList.toggle('active', active);
   });
 
-  ensureLoaded(key);
-  queueHeightSync(key);
   renderProjectContext();
-  captureDefaultModuleState(key);
-  applyPendingProjectStateToFrame(key);
-  applyContextToFrame(key);
+  if(key === 'synthesis'){
+    loadSynthesisDependencies();
+    renderSynthesis();
+  }else{
+    ensureLoaded(key);
+    queueHeightSync(key);
+    captureDefaultModuleState(key);
+    applyPendingProjectStateToFrame(key);
+    applyContextToFrame(key);
+  }
 
   localStorage.setItem('depot-suite-active-tab', key);
   if(pushHash) history.replaceState(null, '', `#${key}`);
@@ -1584,6 +1957,21 @@ document.querySelectorAll('[data-reload]').forEach(btn=>{
   btn.addEventListener('click', ()=>reloadModule(btn.dataset.reload));
 });
 
+document.getElementById('synth-refresh')?.addEventListener('click', ()=>{
+  loadSynthesisDependencies();
+  renderSynthesis();
+});
+
+window.addEventListener('message', e=>{
+  const data = e.data;
+  if(!data || typeof data !== 'object') return;
+  if(data.type !== 'depot-suite-summary') return;
+  const source = data.source;
+  if(!EMBEDDED_KEYS.includes(source)) return;
+  summaryMetricsCache[source] = cloneJson(data.metrics);
+  if(activeKey === 'synthesis') renderSynthesis();
+});
+
 Object.values(MODULES).forEach(cfg=>{
   const frame = document.getElementById(cfg.frameId);
   if(!frame) return;
@@ -1597,8 +1985,12 @@ Object.values(MODULES).forEach(cfg=>{
     captureDefaultModuleState(cfg.key);
     applyPendingProjectStateToFrame(cfg.key);
     applyContextToFrame(cfg.key);
+    try{
+      frame.contentWindow?.postMessage({type:'depot-suite-summary-request'}, '*');
+    }catch{}
     queueHeightSync(cfg.key);
     window.setTimeout(()=>verifyFrameRender(cfg.key), 350);
+    if(activeKey === 'synthesis') renderSynthesis();
   });
   frame.addEventListener('error', ()=>{
     const placeholder = document.getElementById(cfg.placeholderId);
@@ -1607,6 +1999,7 @@ Object.values(MODULES).forEach(cfg=>{
     frame.dataset.loaded = '';
     frame.dataset.requested = '';
     setStatus(cfg.key, 'Load failed', false);
+    if(activeKey === 'synthesis') renderSynthesis();
   });
 });
 
