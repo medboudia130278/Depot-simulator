@@ -961,6 +961,7 @@ body{
             </div>
             <div class="module-actions">
               <button class="frame-btn" type="button" id="synth-refresh">Refresh</button>
+              <button class="frame-btn primary" type="button" id="synth-export">Export Excel</button>
             </div>
           </div>
           <div class="frame-wrap">
@@ -1055,6 +1056,8 @@ let pendingModuleState = {fitout:null, store:null, vehicles:null};
 let projectList = [];
 let synthesisRefreshTimer = 0;
 let summaryMetricsCache = {fitout:null, store:null, vehicles:null};
+let summaryRequestWaiters = {fitout:[], store:[], vehicles:[]};
+let exportDataWaiters = {fitout:[], store:[]};
 
 function loadProjectContext(){
   try{
@@ -1157,6 +1160,29 @@ function cloneJson(value){
 
 function resetSummaryMetricsCache(){
   summaryMetricsCache = {fitout:null, store:null, vehicles:null};
+}
+
+function enqueueWaiter(bucket, key, entry){
+  if(!bucket[key]) bucket[key] = [];
+  bucket[key].push(entry);
+}
+
+function resolveWaiters(bucket, key, payload){
+  const waiters = bucket[key] || [];
+  bucket[key] = [];
+  waiters.forEach(entry=>{
+    if(entry.timeoutId) window.clearTimeout(entry.timeoutId);
+    entry.resolve(payload);
+  });
+}
+
+function rejectWaiters(bucket, key, reason){
+  const waiters = bucket[key] || [];
+  bucket[key] = [];
+  waiters.forEach(entry=>{
+    if(entry.timeoutId) window.clearTimeout(entry.timeoutId);
+    entry.reject(reason);
+  });
 }
 
 function getFrameProjectState(key){
@@ -1447,6 +1473,257 @@ function loadSynthesisDependencies(){
       }catch{}
     }
   });
+}
+
+function waitForFrameLoaded(key, timeoutMs=10000){
+  const cfg = MODULES[key];
+  const frame = document.getElementById(cfg.frameId);
+  if(!frame) return Promise.reject(new Error(`Frame not found for ${key}`));
+  ensureLoaded(key);
+  if(frame.dataset.loaded === '1') return Promise.resolve(frame);
+  return new Promise((resolve,reject)=>{
+    const timeoutId = window.setTimeout(()=>{
+      frame.removeEventListener('load', onLoad);
+      frame.removeEventListener('error', onError);
+      reject(new Error(`Timed out waiting for ${key} frame`));
+    }, timeoutMs);
+    const onLoad = ()=>{
+      window.clearTimeout(timeoutId);
+      frame.removeEventListener('error', onError);
+      resolve(frame);
+    };
+    const onError = ()=>{
+      window.clearTimeout(timeoutId);
+      frame.removeEventListener('load', onLoad);
+      reject(new Error(`Failed to load ${key} frame`));
+    };
+    frame.addEventListener('load', onLoad, {once:true});
+    frame.addEventListener('error', onError, {once:true});
+  });
+}
+
+async function requestModuleSummaryMetrics(key, timeoutMs=8000){
+  if(summaryMetricsCache[key]) return cloneJson(summaryMetricsCache[key]);
+  const frame = await waitForFrameLoaded(key, timeoutMs);
+  return new Promise((resolve,reject)=>{
+    const entry = {
+      resolve:metrics=>resolve(cloneJson(metrics)),
+      reject,
+      timeoutId:window.setTimeout(()=>{
+        rejectWaiters(summaryRequestWaiters, key, new Error(`Timed out waiting for ${key} summary metrics`));
+      }, timeoutMs),
+    };
+    enqueueWaiter(summaryRequestWaiters, key, entry);
+    try{
+      frame.contentWindow?.postMessage({type:'depot-suite-summary-request'}, '*');
+    }catch{}
+  });
+}
+
+async function requestModuleExportData(key, timeoutMs=8000){
+  const frame = await waitForFrameLoaded(key, timeoutMs);
+  return new Promise((resolve,reject)=>{
+    const entry = {
+      resolve:data=>resolve(cloneJson(data)),
+      reject,
+      timeoutId:window.setTimeout(()=>{
+        rejectWaiters(exportDataWaiters, key, new Error(`Timed out waiting for ${key} export data`));
+      }, timeoutMs),
+    };
+    enqueueWaiter(exportDataWaiters, key, entry);
+    try{
+      frame.contentWindow?.postMessage({type:'depot-suite-export-request'}, '*');
+    }catch{}
+  });
+}
+
+function xmlEscape(value){
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function makeCell(value, styleId='Default'){
+  if(value === null || value === undefined || value === '') return `<Cell ss:StyleID="${styleId}"><Data ss:Type="String"></Data></Cell>`;
+  if(typeof value === 'number' && Number.isFinite(value)) return `<Cell ss:StyleID="${styleId}"><Data ss:Type="Number">${value}</Data></Cell>`;
+  return `<Cell ss:StyleID="${styleId}"><Data ss:Type="String">${xmlEscape(value)}</Data></Cell>`;
+}
+
+function makeRow(values, styleId='Default'){
+  return `<Row>${values.map(value=>makeCell(value, styleId)).join('')}</Row>`;
+}
+
+function buildWorksheetXml(name, rows){
+  return `<Worksheet ss:Name="${xmlEscape(name)}"><Table>${rows.map(row=>makeRow(row.values, row.styleId || 'Default')).join('')}</Table></Worksheet>`;
+}
+
+function buildWorkbookXml(sheets){
+  return `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Bottom"/>
+   <Borders/>
+   <Font ss:FontName="Calibri" ss:Size="11"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="Header">
+   <Font ss:FontName="Calibri" ss:Size="12" ss:Bold="1"/>
+  </Style>
+  <Style ss:ID="TableHeader">
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/>
+   <Interior ss:Color="#DCE6F1" ss:Pattern="Solid"/>
+  </Style>
+ </Styles>
+ ${sheets.map(sheet=>buildWorksheetXml(sheet.name, sheet.rows)).join('')}
+</Workbook>`;
+}
+
+function downloadWorkbookXml(filename, xml){
+  const blob = new Blob([xml], {type:'application/vnd.ms-excel'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+function sanitizeFileName(value){
+  return String(value || 'project')
+    .replace(/[<>:"/\\|?*]+/g, '-')
+    .replace(/\s+/g, '_')
+    .slice(0, 80);
+}
+
+function getExportContextColumns(ctx){
+  return [
+    ctx.projectName || '',
+    ctx.contextType || '',
+    ctx.regionName || '',
+    ctx.currency || 'EUR',
+    ctx.contractYears ?? '',
+    new Date().toLocaleString('en-US'),
+  ];
+}
+
+async function exportProjectWorkbook(){
+  const btn = document.getElementById('synth-export');
+  if(btn){
+    btn.disabled = true;
+    btn.textContent = 'Exporting...';
+  }
+  try{
+    const ctx = getNormalizedContext();
+    const metaCols = getExportContextColumns(ctx);
+    const [fitoutSummary, vehiclesSummary, storeSummary, fitoutExport, storeExport] = await Promise.all([
+      requestModuleSummaryMetrics('fitout'),
+      requestModuleSummaryMetrics('vehicles'),
+      requestModuleSummaryMetrics('store'),
+      requestModuleExportData('fitout'),
+      requestModuleExportData('store'),
+    ]);
+
+    const synthesisRows = [
+      {values:['Project','Context','Region','Currency','Contract Duration (years)','Export Date','Module','Scope','Capex','Annual','Contract','Note'], styleId:'TableHeader'},
+      {values:[
+        ...metaCols,
+        'Fit-Out',
+        'Depot fit-out budget view',
+        formatCurrencyValue(fitoutSummary.totalCapex, ctx.currency),
+        formatCurrencyValue(fitoutSummary.annualRecurring, ctx.currency),
+        formatCurrencyValue(fitoutSummary.totalOverContract, ctx.currency),
+        'CAPEX + recurring over contract duration',
+      ]},
+      {values:[
+        ...metaCols,
+        'Vehicles & Washing',
+        'Fuel, water and detergent OPEX',
+        '—',
+        formatCurrencyValue(vehiclesSummary.annualOpex, ctx.currency),
+        formatCurrencyValue(vehiclesSummary.totalOverContract, ctx.currency),
+        `Fuel share ${formatCurrencyValue(vehiclesSummary.annualFuelCost, ctx.currency)}`,
+      ]},
+      {values:[
+        ...metaCols,
+        'Store',
+        'Equipment CAPEX',
+        formatCurrencyValue(storeSummary.totalEquipmentCapex, ctx.currency),
+        '—',
+        '—',
+        `Reference region ${storeSummary.region}`,
+      ]},
+    ];
+
+    const fitoutRows = [
+      {values:['Project','Context','Region','Currency','Contract Duration (years)','Export Date','Category','Item','Unit basis','Qty','Simulator unit CAPEX','Simulator annual recurring','Simulator total CAPEX','Suggested supplier','Suggested reference','Distributor quoted unit price','Quoted currency','Lead time','Comments'], styleId:'TableHeader'},
+      ...((fitoutExport?.rows || []).map(row=>({
+        values:[
+          ...metaCols,
+          row.category,
+          row.item,
+          row.unitBasis,
+          row.qty,
+          row.simulatorUnitCapex,
+          row.simulatorAnnualRecurring,
+          row.simulatorTotalCapex,
+          row.suggestedSupplier,
+          row.suggestedReference,
+          row.distributorQuotedUnitPrice,
+          row.quotedCurrency,
+          row.leadTime,
+          row.comments || row.recurringNote,
+        ],
+      }))),
+    ];
+
+    const storeRows = [
+      {values:['Project','Context','Region','Currency','Contract Duration (years)','Export Date','Equipment type','Qty','Unit','Simulator unit price','Simulator total CAPEX','Geometry / Key specs','Suggested supplier','Suggested reference','Distributor quoted unit price','Quoted currency','Lead time','Comments'], styleId:'TableHeader'},
+      ...((storeExport?.rows || []).map(row=>({
+        values:[
+          ...metaCols,
+          row.equipmentType,
+          row.qty,
+          row.unit,
+          row.simulatorUnitPrice,
+          row.simulatorTotalCapex,
+          row.geometry,
+          row.suggestedSupplier,
+          row.suggestedReference,
+          row.distributorQuotedUnitPrice,
+          row.quotedCurrency,
+          row.leadTime,
+          row.comments,
+        ],
+      }))),
+    ];
+
+    const xml = buildWorkbookXml([
+      {name:'Synthesis', rows:synthesisRows},
+      {name:'RFQ_FitOut', rows:fitoutRows},
+      {name:'RFQ_Store', rows:storeRows},
+    ]);
+    downloadWorkbookXml(`${sanitizeFileName(ctx.projectName || 'Depot_Project')}_RFQ.xls`, xml);
+  }catch(err){
+    window.alert(`Excel export failed: ${err.message || err}`);
+  }finally{
+    if(btn){
+      btn.disabled = false;
+      btn.textContent = 'Export Excel';
+    }
+  }
 }
 
 function renderSynthesis(){
@@ -1873,6 +2150,8 @@ function ensureLoaded(key, forceReload=false){
 
   if(forceReload){
     if(EMBEDDED_KEYS.includes(key)) summaryMetricsCache[key] = null;
+    if(summaryRequestWaiters[key]) rejectWaiters(summaryRequestWaiters, key, new Error(`${key} frame reloaded`));
+    if(exportDataWaiters[key]) rejectWaiters(exportDataWaiters, key, new Error(`${key} frame reloaded`));
     frame.dataset.loaded = '';
     frame.dataset.requested = '';
     frame.dataset.blankRetry = '';
@@ -1962,14 +2241,26 @@ document.getElementById('synth-refresh')?.addEventListener('click', ()=>{
   renderSynthesis();
 });
 
+document.getElementById('synth-export')?.addEventListener('click', ()=>{
+  exportProjectWorkbook();
+});
+
 window.addEventListener('message', e=>{
   const data = e.data;
   if(!data || typeof data !== 'object') return;
-  if(data.type !== 'depot-suite-summary') return;
-  const source = data.source;
-  if(!EMBEDDED_KEYS.includes(source)) return;
-  summaryMetricsCache[source] = cloneJson(data.metrics);
-  if(activeKey === 'synthesis') renderSynthesis();
+  if(data.type === 'depot-suite-summary'){
+    const source = data.source;
+    if(!EMBEDDED_KEYS.includes(source)) return;
+    summaryMetricsCache[source] = cloneJson(data.metrics);
+    resolveWaiters(summaryRequestWaiters, source, data.metrics);
+    if(activeKey === 'synthesis') renderSynthesis();
+    return;
+  }
+  if(data.type === 'depot-suite-export-data'){
+    const source = data.source;
+    if(!Object.prototype.hasOwnProperty.call(exportDataWaiters, source)) return;
+    resolveWaiters(exportDataWaiters, source, data.payload);
+  }
 });
 
 Object.values(MODULES).forEach(cfg=>{
@@ -1999,6 +2290,8 @@ Object.values(MODULES).forEach(cfg=>{
     frame.dataset.loaded = '';
     frame.dataset.requested = '';
     setStatus(cfg.key, 'Load failed', false);
+    if(summaryRequestWaiters[cfg.key]) rejectWaiters(summaryRequestWaiters, cfg.key, new Error(`Failed to load ${cfg.key} frame`));
+    if(exportDataWaiters[cfg.key]) rejectWaiters(exportDataWaiters, cfg.key, new Error(`Failed to load ${cfg.key} frame`));
     if(activeKey === 'synthesis') renderSynthesis();
   });
 });

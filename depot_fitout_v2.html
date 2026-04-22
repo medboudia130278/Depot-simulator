@@ -61,15 +61,35 @@ body{font-family:var(--sans);background:var(--surface);color:var(--text);font-si
 .staff-total strong{color:var(--text);font-family:var(--mono)}
 /* ITEMS TABLE */
 .items-wrap{overflow-x:auto}
+.items-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.items-toolbar-actions{display:flex;flex-wrap:wrap;gap:8px}
+.items-toolbar-note{font-size:11px;color:var(--tsec)}
+.items-toolbtn{font-family:var(--sans);font-size:11px;font-weight:500;padding:7px 12px;border:1px solid var(--border2);border-radius:999px;cursor:pointer;background:#fff;color:var(--text);transition:all .15s}
+.items-toolbtn:hover{background:var(--surf2)}
+.custom-builder{margin-bottom:14px}
+.custom-builder-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.custom-builder-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.custom-builder-note{font-size:11px;color:var(--tsec);margin-top:8px}
+.custom-builder .field{margin-bottom:0}
+@media(max-width:900px){.custom-builder-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.custom-builder-grid{grid-template-columns:1fr}}
 .items-tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:960px}
 .items-tbl th{position:sticky;top:0;background:var(--surf2);padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--tsec);letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid var(--border);white-space:nowrap;z-index:2}
 .items-tbl th.r{text-align:right}
 .items-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
 .items-tbl tr:hover td{background:#F8FAFC}
+.items-tbl tr.excluded td{opacity:.5;background:#F8FAFC}
 .cat-row td{background:var(--surf2)!important;padding:9px 10px;font-weight:600;font-size:11px;border-top:2px solid var(--border2);border-bottom:1px solid var(--border)}
 .cat-label{display:flex;align-items:center;gap:8px}
+.cat-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cat-actions{display:flex;align-items:center;gap:8px}
+.custom-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:var(--purplel);color:var(--purple);font-size:10px;font-weight:600;margin-left:8px}
+.check-cell{width:70px;text-align:center}
+.check-wrap{display:flex;align-items:center;justify-content:center}
+.check-wrap input{width:16px;height:16px;accent-color:#1D4ED8}
 .cat-strip{width:4px;height:16px;border-radius:2px;flex-shrink:0}
 .items-tbl input[type=number]{font-family:var(--mono);font-size:12px;width:72px;padding:4px 6px;border:1.5px solid var(--border2);border-radius:4px;text-align:right}
+.items-tbl input[type=text]{font-family:var(--sans);font-size:12px;width:100%;min-width:160px;padding:4px 6px;border:1.5px solid var(--border2);border-radius:4px}
 .items-tbl input.amber{background:var(--amberl);color:var(--amber);font-weight:500;border-color:#FDE68A}
 .items-tbl input.grey{background:var(--surf2);color:var(--tsec)}
 .items-tbl .mono{font-family:var(--mono);text-align:right}
@@ -176,6 +196,54 @@ body{font-family:var(--sans);background:var(--surface);color:var(--text);font-si
     <strong style="color:var(--amber)">Amber cells</strong> — unit prices are editable (override with actual quotes).
     Qty columns show auto-computed values based on headcount; edit directly to override.
     <strong style="color:var(--blue)">Blue = CAPEX</strong> &nbsp;|&nbsp; <strong style="color:var(--teal)">Teal = Annual recurring</strong>
+  </div>
+  <div class="card custom-builder">
+    <div class="card-header"><div class="card-dot" style="background:#7C3AED"></div>Custom Groups & Equipment</div>
+    <div class="custom-builder-grid">
+      <div class="field">
+        <label>Existing custom group</label>
+        <select id="custom-group-select"></select>
+      </div>
+      <div class="field">
+        <label>New custom group</label>
+        <input type="text" id="custom-group-name" placeholder="Example: Cleaning room tools">
+      </div>
+      <div class="field">
+        <label>Equipment name</label>
+        <input type="text" id="custom-item-name" placeholder="Example: Mobile lifting frame">
+      </div>
+      <div class="field">
+        <label>Qty</label>
+        <input type="number" id="custom-item-qty" value="1" min="0" step="1">
+      </div>
+      <div class="field">
+        <label>Unit CAPEX</label>
+        <input type="number" id="custom-item-capex" value="0" min="0" step="10">
+      </div>
+      <div class="field">
+        <label>Annual recurring</label>
+        <input type="number" id="custom-item-rec" value="0" min="0" step="5">
+      </div>
+      <div class="field" style="grid-column:1 / -1">
+        <label>Note</label>
+        <input type="text" id="custom-item-note" placeholder="Maintenance, consumables, sourcing note, or project-specific remark">
+      </div>
+    </div>
+    <div class="custom-builder-actions">
+      <button class="items-toolbtn" type="button" onclick="createCustomGroup()">Add custom group</button>
+      <button class="items-toolbtn" type="button" onclick="addCustomItem()">Add custom equipment</button>
+    </div>
+    <div class="custom-builder-note">
+      Custom groups are kept separate from the native catalogue, saved with the project, and included in Summary, Synthesis, and RFQ export.
+    </div>
+  </div>
+  <div class="items-toolbar">
+    <div class="items-toolbar-actions">
+      <button class="items-toolbtn" type="button" onclick="setAllIncluded(true)">Select all</button>
+      <button class="items-toolbtn" type="button" onclick="setAllIncluded(false)">Clear all</button>
+      <button class="items-toolbtn" type="button" onclick="resetIncluded()">Reset defaults</button>
+    </div>
+    <div class="items-toolbar-note" id="items-selection-note"></div>
   </div>
   <div class="items-wrap">
     <table class="items-tbl" id="items-tbl"></table>
@@ -295,6 +363,19 @@ const ITEMS = [
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const P = {n_tech:20,n_eng:5,n_mgr:3,n_bench:1,n_arch:8,n_screens:3,n_water:4,n_wash:2,n_dry:2,n_extg:12,n_firstaid:4,n_years:10, n_ptruck_m:2, n_ptruck_e:1};
 const QTY_OVERRIDE = {};
+const ITEM_INCLUDED = Object.fromEntries(ITEMS.map(it=>[it.id,true]));
+const CUSTOM_GROUPS = [];
+const CUSTOM_ITEMS = [];
+const CUSTOM_GROUP_PALETTE = [
+  {color:'#7C3AED', fill:'#EDE9FE'},
+  {color:'#0891B2', fill:'#CFFAFE'},
+  {color:'#15803D', fill:'#DCFCE7'},
+  {color:'#C2410C', fill:'#FFEDD5'},
+  {color:'#BE185D', fill:'#FCE7F3'},
+  {color:'#334155', fill:'#E2E8F0'},
+];
+let customGroupSeq = 1;
+let customItemSeq = 1;
 
 function readInputs(){
   ['n_tech','n_eng','n_mgr','n_bench','n_arch','n_screens','n_water','n_wash','n_dry','n_extg','n_firstaid','n_years','n_ptruck_m','n_ptruck_e']
@@ -353,7 +434,165 @@ function evalQty(expr){
   try{return Math.max(0,Math.round(evalQtyValue(expr)));}catch{return 0;}
 }
 
-function getQty(it){return QTY_OVERRIDE[it.id]!==undefined?QTY_OVERRIDE[it.id]:evalQty(it.qtyExpr);}
+function isCustomItem(it){return !!(it && it.custom);}
+function getAllItems(){return [...ITEMS, ...CUSTOM_ITEMS];}
+function getCategoryMeta(cat){
+  return CATS[cat] || CUSTOM_GROUPS.find(group=>group.name===cat) || {color:'#334155', fill:'#E2E8F0'};
+}
+function findCustomGroupIndex(name){
+  const normalized=String(name||'').trim().toLowerCase();
+  return CUSTOM_GROUPS.findIndex(group=>group.name.trim().toLowerCase()===normalized);
+}
+function escapeHtml(value){
+  return String(value ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+function sanitizeCustomGroupName(name){
+  return String(name||'').trim().replace(/\s+/g,' ');
+}
+function buildDefaultCustomGroupName(){
+  let candidate='';
+  do{
+    candidate=`Custom Group ${customGroupSeq++}`;
+  }while(findCustomGroupIndex(candidate)!==-1);
+  return candidate;
+}
+function ensureCustomGroup(name){
+  const normalized=sanitizeCustomGroupName(name);
+  const finalName=normalized || buildDefaultCustomGroupName();
+  const existingIndex=findCustomGroupIndex(finalName);
+  if(existingIndex!==-1) return CUSTOM_GROUPS[existingIndex].name;
+  const palette=CUSTOM_GROUP_PALETTE[CUSTOM_GROUPS.length % CUSTOM_GROUP_PALETTE.length];
+  CUSTOM_GROUPS.push({
+    id:`custom-group-${Date.now()}-${CUSTOM_GROUPS.length + 1}`,
+    name:finalName,
+    color:palette.color,
+    fill:palette.fill,
+  });
+  refreshCustomGroupSelect(finalName);
+  return finalName;
+}
+function getQty(it){
+  if(isCustomItem(it)) return Math.max(0, Number(it.qty)||0);
+  return QTY_OVERRIDE[it.id]!==undefined?QTY_OVERRIDE[it.id]:evalQty(it.qtyExpr);
+}
+function isIncluded(it){return ITEM_INCLUDED[it.id] !== false;}
+function getIncludedCount(){return getAllItems().filter(it=>isIncluded(it)).length;}
+function getCategoryStatus(cat){
+  const catItems = getAllItems().filter(it=>it.cat===cat);
+  const includedCount = catItems.filter(it=>isIncluded(it)).length;
+  return {
+    total:catItems.length,
+    includedCount,
+    all:includedCount===catItems.length,
+    none:includedCount===0,
+  };
+}
+function setItemIncluded(id, included){
+  ITEM_INCLUDED[id] = !!included;
+  syncItemChanges();
+}
+function setCategoryIncluded(cat, included){
+  getAllItems().filter(it=>it.cat===cat).forEach(it=>{ ITEM_INCLUDED[it.id] = !!included; });
+  syncItemChanges();
+}
+function setAllIncluded(included){
+  getAllItems().forEach(it=>{ ITEM_INCLUDED[it.id] = !!included; });
+  syncItemChanges();
+}
+function resetIncluded(){
+  getAllItems().forEach(it=>{ ITEM_INCLUDED[it.id] = true; });
+  syncItemChanges();
+}
+function refreshCustomGroupSelect(selectedName=''){
+  const select=document.getElementById('custom-group-select');
+  if(!select) return;
+  select.innerHTML = ['<option value="">Create or select a custom group</option>']
+    .concat(CUSTOM_GROUPS.map(group=>`<option value="${escapeHtml(group.name)}">${escapeHtml(group.name)}</option>`))
+    .join('');
+  if(selectedName && CUSTOM_GROUPS.some(group=>group.name===selectedName)){
+    select.value=selectedName;
+  }
+}
+function createCustomGroup(){
+  const input=document.getElementById('custom-group-name');
+  const groupName=ensureCustomGroup(input ? input.value : '');
+  if(input) input.value='';
+  syncItemChanges();
+  return groupName;
+}
+function addCustomItem(){
+  const groupSelect=document.getElementById('custom-group-select');
+  const groupInput=document.getElementById('custom-group-name');
+  const nameInput=document.getElementById('custom-item-name');
+  const qtyInput=document.getElementById('custom-item-qty');
+  const capexInput=document.getElementById('custom-item-capex');
+  const recInput=document.getElementById('custom-item-rec');
+  const noteInput=document.getElementById('custom-item-note');
+  const itemName=String(nameInput?.value||'').trim();
+  if(!itemName){
+    if(nameInput) nameInput.focus();
+    return;
+  }
+  const groupName=ensureCustomGroup((groupSelect && groupSelect.value) || (groupInput && groupInput.value) || '');
+  const item={
+    id:`custom-item-${customItemSeq++}`,
+    custom:true,
+    cat:groupName,
+    name:itemName,
+    qty:Math.max(0, Number(qtyInput?.value)||0),
+    capex:Math.max(0, Number(capexInput?.value)||0),
+    rec:Math.max(0, Number(recInput?.value)||0),
+    recNote:String(noteInput?.value||'').trim(),
+    _capex:Math.max(0, Number(capexInput?.value)||0),
+    _rec:Math.max(0, Number(recInput?.value)||0),
+  };
+  CUSTOM_ITEMS.push(item);
+  ITEM_INCLUDED[item.id]=true;
+  if(nameInput) nameInput.value='';
+  if(qtyInput) qtyInput.value='1';
+  if(capexInput) capexInput.value='0';
+  if(recInput) recInput.value='0';
+  if(noteInput) noteInput.value='';
+  if(groupInput) groupInput.value='';
+  refreshCustomGroupSelect(groupName);
+  syncItemChanges();
+}
+function updateCustomItemField(id, field, value){
+  const item=CUSTOM_ITEMS.find(entry=>entry.id===id);
+  if(!item) return;
+  if(field==='qty' || field==='capex' || field==='rec'){
+    item[field]=Math.max(0, Number(value)||0);
+  }else if(field==='name' || field==='recNote'){
+    item[field]=String(value||'').trim();
+  }
+  syncItemChanges();
+}
+function deleteCustomItem(id){
+  const index=CUSTOM_ITEMS.findIndex(item=>item.id===id);
+  if(index===-1) return;
+  CUSTOM_ITEMS.splice(index,1);
+  delete ITEM_INCLUDED[id];
+  syncItemChanges();
+}
+function deleteCustomGroup(cat){
+  const groupIndex=CUSTOM_GROUPS.findIndex(group=>group.name===cat);
+  if(groupIndex===-1) return;
+  const itemCount=CUSTOM_ITEMS.filter(item=>item.cat===cat).length;
+  if(!window.confirm(`Delete custom group "${cat}" and its ${itemCount} equipment line(s)?`)) return;
+  for(let i=CUSTOM_ITEMS.length-1;i>=0;i--){
+    if(CUSTOM_ITEMS[i].cat!==cat) continue;
+    delete ITEM_INCLUDED[CUSTOM_ITEMS[i].id];
+    CUSTOM_ITEMS.splice(i,1);
+  }
+  CUSTOM_GROUPS.splice(groupIndex,1);
+  refreshCustomGroupSelect();
+  syncItemChanges();
+}
 function getSharedContext(){
   try{
     return window.DEPOT_SHARED_CONTEXT || (window.parent && window.parent!==window && window.parent.DEPOT_SHARED_CONTEXT) || null;
@@ -402,7 +641,12 @@ function getProjectState(){
   return {
     params:{...P},
     qtyOverride:{...QTY_OVERRIDE},
+    itemIncluded:{...ITEM_INCLUDED},
     itemValues:ITEMS.map(it=>({id:it.id, capex:it.capex, rec:it.rec})),
+    customGroups:CUSTOM_GROUPS.map(group=>({...group})),
+    customItems:CUSTOM_ITEMS.map(item=>({...item})),
+    customGroupSeq,
+    customItemSeq,
     activeTab:document.querySelector('.tab-btn.active')?.dataset.tab || 'tab-inputs',
   };
 }
@@ -421,6 +665,21 @@ function applyProjectState(state){
       QTY_OVERRIDE[key] = val;
     });
   }
+  ITEMS.forEach(it=>{
+    it.capex = it._capex;
+    it.rec = it._rec;
+  });
+  ITEMS.forEach(it=>{ ITEM_INCLUDED[it.id] = true; });
+  CUSTOM_ITEMS.splice(0, CUSTOM_ITEMS.length);
+  CUSTOM_GROUPS.splice(0, CUSTOM_GROUPS.length);
+  Object.keys(ITEM_INCLUDED)
+    .filter(key=>String(key).startsWith('custom-item-'))
+    .forEach(key=>delete ITEM_INCLUDED[key]);
+  if(state.itemIncluded && typeof state.itemIncluded==='object'){
+    Object.entries(state.itemIncluded).forEach(([key,val])=>{
+      ITEM_INCLUDED[key] = !!val;
+    });
+  }
   if(Array.isArray(state.itemValues)){
     state.itemValues.forEach(saved=>{
       const item = ITEMS.find(it=>it.id===saved.id);
@@ -429,10 +688,46 @@ function applyProjectState(state){
       if(saved.rec !== undefined) item.rec = saved.rec;
     });
   }
+  if(Array.isArray(state.customGroups)){
+    state.customGroups.forEach(group=>{
+      if(!group || !group.name) return;
+      CUSTOM_GROUPS.push({
+        id:group.id || `custom-group-${Date.now()}-${CUSTOM_GROUPS.length + 1}`,
+        name:group.name,
+        color:group.color || CUSTOM_GROUP_PALETTE[CUSTOM_GROUPS.length % CUSTOM_GROUP_PALETTE.length].color,
+        fill:group.fill || CUSTOM_GROUP_PALETTE[CUSTOM_GROUPS.length % CUSTOM_GROUP_PALETTE.length].fill,
+      });
+    });
+  }
+  if(Array.isArray(state.customItems)){
+    state.customItems.forEach(saved=>{
+      if(!saved || !saved.name || !saved.cat) return;
+      if(findCustomGroupIndex(saved.cat)===-1){
+        ensureCustomGroup(saved.cat);
+      }
+      const item={
+        id:saved.id || `custom-item-${customItemSeq++}`,
+        custom:true,
+        cat:saved.cat,
+        name:saved.name,
+        qty:Math.max(0, Number(saved.qty)||0),
+        capex:Math.max(0, Number(saved.capex)||0),
+        rec:Math.max(0, Number(saved.rec)||0),
+        recNote:String(saved.recNote || '').trim(),
+        _capex:Math.max(0, Number(saved._capex ?? saved.capex)||0),
+        _rec:Math.max(0, Number(saved._rec ?? saved.rec)||0),
+      };
+      CUSTOM_ITEMS.push(item);
+      if(ITEM_INCLUDED[item.id] === undefined) ITEM_INCLUDED[item.id] = true;
+    });
+  }
+  customGroupSeq = Math.max(1, Number(state.customGroupSeq)||customGroupSeq);
+  customItemSeq = Math.max(1, Number(state.customItemSeq)||customItemSeq);
   Object.keys(P).forEach(key=>{
     const el = document.getElementById(key);
     if(el) el.value = String(P[key]);
   });
+  refreshCustomGroupSelect();
   update();
   if(state.activeTab && document.getElementById(state.activeTab)) sw(state.activeTab);
   return true;
@@ -442,7 +737,8 @@ function applyProjectState(state){
 function calcTotals(){
   const byCat={};
   let totalCap=0,totalRec=0;
-  for(const it of ITEMS){
+  for(const it of getAllItems()){
+    if(!isIncluded(it)) continue;
     const qty=getQty(it);
     const cap=qty*it.capex, rec=qty*it.rec;
     totalCap+=cap; totalRec+=rec;
@@ -475,6 +771,43 @@ function publishSummaryMetrics(){
   }catch{}
 }
 
+function getExportRows(){
+  readInputs();
+  return getAllItems().map(it=>{
+    if(!isIncluded(it)) return null;
+    const qty = getQty(it);
+    if(qty <= 0) return null;
+    return {
+      category:it.cat,
+      item:it.name,
+      unitBasis:isCustomItem(it)?'Manual':it.qtyExpr,
+      qty,
+      simulatorUnitCapex:it.capex,
+      simulatorAnnualRecurring:it.rec,
+      simulatorTotalCapex:qty * it.capex,
+      recurringNote:it.recNote || '',
+      suggestedSupplier:'',
+      suggestedReference:'',
+      distributorQuotedUnitPrice:'',
+      quotedCurrency:getCurrencyCode(),
+      leadTime:'',
+      comments:'',
+    };
+  }).filter(Boolean);
+}
+
+function publishExportData(){
+  try{
+    if(window.parent && window.parent !== window){
+      window.parent.postMessage({
+        type:'depot-suite-export-data',
+        source:'fitout',
+        payload:{ rows:getExportRows() },
+      }, '*');
+    }
+  }catch{}
+}
+
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function sw(id){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
@@ -502,10 +835,16 @@ function renderInputsKpi(){
 }
 
 // ── ITEMS TABLE ───────────────────────────────────────────────────────────────
-function renderItems(){
+function renderItemsLegacy(){
   const rows=[];
   let curCat='';
+  const includedCount = getIncludedCount();
+  const selectionNote = document.getElementById('items-selection-note');
+  if(selectionNote){
+    selectionNote.textContent = `${includedCount}/${ITEMS.length} items included in totals`;
+  }
   rows.push(`<thead><tr>
+    <th class="check-cell">Include</th>
     <th style="width:340px">Item</th>
     <th style="width:120px">Unit basis</th>
     <th class="r" style="width:70px">Qty</th>
@@ -520,34 +859,48 @@ function renderItems(){
     if(it.cat!==curCat){
       curCat=it.cat;
       const c=CATS[curCat];
-      rows.push(`<tr class="cat-row"><td colspan="8">
-        <div class="cat-label">
-          <div class="cat-strip" style="background:${c.color}"></div>
-          <span style="color:${c.color}">${curCat}</span>
+      const catState = getCategoryStatus(curCat);
+      rows.push(`<tr class="cat-row"><td colspan="9">
+        <div class="cat-head">
+          <div class="cat-label">
+            <div class="cat-strip" style="background:${c.color}"></div>
+            <span style="color:${c.color}">${curCat}</span>
+          </div>
+          <div class="cat-actions">
+            <span style="font-size:10px;color:var(--tsec);font-family:var(--mono)">${catState.includedCount}/${catState.total}</span>
+            <button class="items-toolbtn" type="button" onclick='setCategoryIncluded(${JSON.stringify(curCat)}, ${catState.all ? 'false' : 'true'})'>${catState.all ? 'Clear category' : 'Select category'}</button>
+          </div>
         </div></td></tr>`);
     }
     const qty=getQty(it);
     const cap=qty*it.capex, rec=qty*it.rec;
     const autoQty=evalQty(it.qtyExpr);
     const isOverride=QTY_OVERRIDE[it.id]!==undefined;
-    rows.push(`<tr>
+    const included = isIncluded(it);
+    rows.push(`<tr class="${included ? '' : 'excluded'}">
+      <td class="check-cell">
+        <div class="check-wrap">
+          <input type="checkbox" ${included ? 'checked' : ''} onchange="setItemIncluded(${it.id}, this.checked)">
+        </div>
+      </td>
       <td style="font-weight:500;font-size:12px">${it.name}</td>
       <td style="font-size:11px;color:var(--tsec)">${it.qtyExpr.replace(/Math\.ceil\(([^)]+)\)/,(m,g)=>'⌈'+g+'⌉')}</td>
       <td style="text-align:right">
         <input type="number" class="${isOverride?'amber':'grey'}" value="${qty}" min="0" step="1"
           oninput="QTY_OVERRIDE[${it.id}]=+this.value;this.className='amber';syncItemChanges()"
+          ${included ? '' : 'disabled'}
           title="Auto: ${autoQty}. Edit to override.">
       </td>
       <td style="text-align:right">
         ${it.capex>0?`<input type="number" class="amber" value="${it.capex}" min="0" step="10"
-          oninput="ITEMS[${it.id}].capex=+this.value;syncItemChanges()" style="width:80px">`:'<span style="color:var(--tter)">—</span>'}
+          oninput="ITEMS[${it.id}].capex=+this.value;syncItemChanges()" style="width:80px" ${included ? '' : 'disabled'}>`:'<span style="color:var(--tter)">—</span>'}
       </td>
-      <td class="total-cap">${cap>0?fmtE(cap):'—'}</td>
+      <td class="total-cap">${included && cap>0?fmtE(cap):'—'}</td>
       <td style="text-align:right">
         ${it.rec>0?`<input type="number" class="amber" value="${it.rec}" min="0" step="5"
-          oninput="ITEMS[${it.id}].rec=+this.value;syncItemChanges()" style="width:80px">`:'<span style="color:var(--tter)">—</span>'}
+          oninput="ITEMS[${it.id}].rec=+this.value;syncItemChanges()" style="width:80px" ${included ? '' : 'disabled'}>`:'<span style="color:var(--tter)">—</span>'}
       </td>
-      <td class="total-rec">${rec>0?fmtE(rec):'—'}</td>
+      <td class="total-rec">${included && rec>0?fmtE(rec):'—'}</td>
       <td class="rec-note">${it.recNote}</td>
     </tr>`);
   }
@@ -555,7 +908,7 @@ function renderItems(){
   // Grand total row
   const {totalCap,totalRec}=calcTotals();
   rows.push(`<tr class="grand-row">
-    <td colspan="4" style="font-weight:700;text-align:right;color:var(--bluem)">TOTAL</td>
+    <td colspan="5" style="font-weight:700;text-align:right;color:var(--bluem)">TOTAL</td>
     <td style="font-family:var(--mono);text-align:right;font-weight:700;color:var(--blue)">${fmtE(totalCap)}</td>
     <td></td>
     <td style="font-family:var(--mono);text-align:right;font-weight:700;color:var(--teal)">${fmtE(totalRec)}</td>
@@ -594,11 +947,12 @@ function renderSummary(){
     <th class="r">Total over contract (${currency})</th>
   </tr></thead><tbody>`;
   for(const [cat,v] of Object.entries(byCat)){
-    const c=CATS[cat];
+    const c=getCategoryMeta(cat);
+    const catLabel=escapeHtml(cat);
     const pct=totalCap>0?Math.round(v.cap/totalCap*100):0;
     const recTot=v.rec*P.n_years;
     rows+=`<tr>
-      <td><span class="type-pill" style="background:${c.fill};color:${c.color};border:1px solid ${c.color}40">${cat}</span></td>
+      <td><span class="type-pill" style="background:${c.fill};color:${c.color};border:1px solid ${c.color}40">${catLabel}</span></td>
       <td class="r bold">${fmtE(v.cap)}</td>
       <td class="r" style="color:var(--tsec)">${pct}%</td>
       <td class="r" style="color:var(--teal)">${v.rec>0?fmtE(v.rec):'—'}</td>
@@ -644,8 +998,118 @@ window.addEventListener('message', e=>{
   }
   if(data.type === 'depot-suite-summary-request'){
     publishSummaryMetrics();
+    return;
+  }
+  if(data.type === 'depot-suite-export-request'){
+    publishExportData();
   }
 });
+function renderItems(){
+  const rows=[];
+  const allItems = getAllItems();
+  const orderedCategories = [...Object.keys(CATS), ...CUSTOM_GROUPS.map(group=>group.name)];
+  const selectionNote = document.getElementById('items-selection-note');
+  if(selectionNote){
+    selectionNote.textContent = `${getIncludedCount()}/${allItems.length} items included in totals`;
+  }
+  rows.push(`<thead><tr>
+    <th class="check-cell">Include</th>
+    <th style="width:340px">Item</th>
+    <th style="width:120px">Unit basis</th>
+    <th class="r" style="width:70px">Qty</th>
+    <th class="r" style="width:90px">Unit CAPEX</th>
+    <th class="r" style="width:100px">Total CAPEX</th>
+    <th class="r" style="width:90px">Unit Rec/yr</th>
+    <th class="r" style="width:100px">Annual Rec</th>
+    <th style="width:180px">Recurring note</th>
+    <th style="width:110px">Actions</th>
+  </tr></thead><tbody>`);
+
+  for(const cat of orderedCategories){
+    const catItems = allItems.filter(item=>item.cat===cat);
+    if(!catItems.length) continue;
+    const c=getCategoryMeta(cat);
+    const catState = getCategoryStatus(cat);
+    const isCustomGroup = CUSTOM_GROUPS.some(group=>group.name===cat);
+    const escapedCat = escapeHtml(cat);
+    rows.push(`<tr class="cat-row"><td colspan="10">
+      <div class="cat-head">
+        <div class="cat-label">
+          <div class="cat-strip" style="background:${c.color}"></div>
+          <span style="color:${c.color}">${escapedCat}${isCustomGroup ? '<span class="custom-badge">Custom group</span>' : ''}</span>
+        </div>
+        <div class="cat-actions">
+          <span style="font-size:10px;color:var(--tsec);font-family:var(--mono)">${catState.includedCount}/${catState.total}</span>
+          <button class="items-toolbtn" type="button" onclick='setCategoryIncluded(${JSON.stringify(cat)}, ${catState.all ? 'false' : 'true'})'>${catState.all ? 'Clear category' : 'Select category'}</button>
+          ${isCustomGroup ? `<button class="items-toolbtn" type="button" onclick='deleteCustomGroup(${JSON.stringify(cat)})'>Delete group</button>` : ''}
+        </div>
+      </div></td></tr>`);
+
+    for(const it of catItems){
+      const qty=getQty(it);
+      const cap=qty*it.capex;
+      const rec=qty*it.rec;
+      const autoQty=isCustomItem(it)?qty:evalQty(it.qtyExpr);
+      const isOverride=!isCustomItem(it) && QTY_OVERRIDE[it.id]!==undefined;
+      const included = isIncluded(it);
+      const escapedName = escapeHtml(it.name);
+      const escapedNote = escapeHtml(it.recNote || '');
+      rows.push(`<tr class="${included ? '' : 'excluded'}">
+        <td class="check-cell">
+          <div class="check-wrap">
+            <input type="checkbox" ${included ? 'checked' : ''} onchange='setItemIncluded(${JSON.stringify(it.id)}, this.checked)'>
+          </div>
+        </td>
+        <td style="font-weight:500;font-size:12px">${escapedName}${isCustomItem(it) ? '<span class="custom-badge">Custom</span>' : ''}</td>
+        <td style="font-size:11px;color:var(--tsec)">${isCustomItem(it) ? 'Manual' : it.qtyExpr.replace(/Math\.ceil\(([^)]+)\)/,(m,g)=>'âŒˆ'+g+'âŒ‰')}</td>
+        <td style="text-align:right">
+          ${isCustomItem(it)
+            ? `<input type="number" class="amber" value="${qty}" min="0" step="1"
+                oninput='updateCustomItemField(${JSON.stringify(it.id)}, "qty", this.value)'
+                ${included ? '' : 'disabled'}
+                title="Manual quantity">`
+            : `<input type="number" class="${isOverride?'amber':'grey'}" value="${qty}" min="0" step="1"
+                oninput="QTY_OVERRIDE[${it.id}]=+this.value;this.className='amber';syncItemChanges()"
+                ${included ? '' : 'disabled'}
+                title="Auto: ${autoQty}. Edit to override.">`}
+        </td>
+        <td style="text-align:right">
+          ${it.capex>0 || isCustomItem(it)?`<input type="number" class="amber" value="${it.capex}" min="0" step="10"
+            oninput='${isCustomItem(it) ? `updateCustomItemField(${JSON.stringify(it.id)}, "capex", this.value)` : `ITEMS[${it.id}].capex=+this.value;syncItemChanges()`}' style="width:80px" ${included ? '' : 'disabled'}>`:'<span style="color:var(--tter)">â€”</span>'}
+        </td>
+        <td class="total-cap">${included && cap>0?fmtE(cap):'â€”'}</td>
+        <td style="text-align:right">
+          ${it.rec>0 || isCustomItem(it)?`<input type="number" class="amber" value="${it.rec}" min="0" step="5"
+            oninput='${isCustomItem(it) ? `updateCustomItemField(${JSON.stringify(it.id)}, "rec", this.value)` : `ITEMS[${it.id}].rec=+this.value;syncItemChanges()`}' style="width:80px" ${included ? '' : 'disabled'}>`:'<span style="color:var(--tter)">â€”</span>'}
+        </td>
+        <td class="total-rec">${included && rec>0?fmtE(rec):'â€”'}</td>
+        <td class="rec-note">
+          ${isCustomItem(it)
+            ? `<input type="text" value="${escapedNote}" placeholder="Optional note"
+                oninput='updateCustomItemField(${JSON.stringify(it.id)}, "recNote", this.value)' ${included ? '' : 'disabled'}>`
+            : it.recNote}
+        </td>
+        <td>
+          ${isCustomItem(it)
+            ? `<button class="items-toolbtn" type="button" onclick='deleteCustomItem(${JSON.stringify(it.id)})'>Delete</button>`
+            : '<span style="color:var(--tter)">â€”</span>'}
+        </td>
+      </tr>`);
+    }
+  }
+
+  const {totalCap,totalRec}=calcTotals();
+  rows.push(`<tr class="grand-row">
+    <td colspan="5" style="font-weight:700;text-align:right;color:var(--bluem)">TOTAL</td>
+    <td style="font-family:var(--mono);text-align:right;font-weight:700;color:var(--blue)">${fmtE(totalCap)}</td>
+    <td></td>
+    <td style="font-family:var(--mono);text-align:right;font-weight:700;color:var(--teal)">${fmtE(totalRec)}</td>
+    <td colspan="2" style="font-size:11px;color:var(--tsec)">Ã— ${P.n_years} yrs = ${fmtE(totalRec*P.n_years)}</td>
+  </tr>`);
+  rows.push('</tbody>');
+  document.getElementById('items-tbl').innerHTML=rows.join('');
+}
+refreshCustomGroupSelect();
 update();
 </script>
 </body>

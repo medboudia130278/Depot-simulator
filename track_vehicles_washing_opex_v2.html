@@ -114,6 +114,11 @@ body{font-family:var(--sans);background:var(--surface);color:var(--text);font-si
 .wash-card-head{padding:13px 16px;background:var(--teall);border-bottom:1px solid #99F6E4;display:flex;align-items:center;gap:10px}
 .wash-card-title{font-size:13px;font-weight:600;color:var(--teal);flex:1}
 .wash-card-body{padding:18px}
+.wash-card.disabled{opacity:.55}
+.wash-card.disabled .wash-card-body{pointer-events:none}
+.wash-togglebar{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;padding:12px 14px;background:var(--surf2);border:1px solid var(--border);border-radius:10px}
+.wash-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);font-weight:500}
+.wash-toggle input{width:16px;height:16px;accent-color:#1D4ED8}
 .result-pill{font-family:var(--mono);font-size:11px;background:var(--surf2);color:var(--tsec);padding:6px 12px;border-radius:6px;margin-top:10px;line-height:2;border:1px solid var(--border)}
 .result-pill .hi{color:var(--teal);font-weight:600}
 .result-pill .hd{color:var(--amber);font-weight:600}
@@ -218,12 +223,16 @@ Speed is the operational working speed, not transit.</span>
 
 <!-- ③ TRAIN WASHING -->
 <div id="pane-washing" class="pane">
-
+  <div class="wash-togglebar">
+    <label class="wash-toggle"><input type="checkbox" id="w_enabled" checked onchange="updateWash()"> Include train washing</label>
+    <label class="wash-toggle"><input type="checkbox" id="w_include_water" checked onchange="updateWash()"> Include water cost</label>
+    <label class="wash-toggle"><input type="checkbox" id="w_include_det" checked onchange="updateWash()"> Include detergent cost</label>
+  </div>
   <div class="wash-kpi-row" id="wash-kpi"></div>
 
   <div class="row2">
     <div>
-      <div class="wash-card">
+      <div class="wash-card" id="wash-water-card">
         <div class="wash-card-head">
           <span style="font-size:16px">🚆</span>
           <span class="wash-card-title">Fleet parameters</span>
@@ -278,7 +287,7 @@ Speed is the operational working speed, not transit.</span>
         </div>
       </div>
 
-      <div class="wash-card" style="margin-top:0">
+      <div class="wash-card" id="wash-det-card" style="margin-top:0">
         <div class="wash-card-head">
           <span style="font-size:16px">🧴</span>
           <span class="wash-card-title">Detergent parameters</span>
@@ -497,6 +506,10 @@ function applyProjectState(state){
     const el = document.getElementById(id);
     if(el) el.value = String(val);
   });
+  [['w_enabled',W.enabled],['w_include_water',W.include_water],['w_include_det',W.include_det]].forEach(([id,val])=>{
+    const el = document.getElementById(id);
+    if(el) el.checked = !!val;
+  });
   updateWash();
   update();
   if(state.activePane && document.getElementById(state.activePane)) swTab(state.activePane);
@@ -690,6 +703,7 @@ function renderResults(){
       <div style="display:flex;align-items:center;gap:8px">
         <span style="background:#CCFBF1;color:#0F766E;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">train wash</span>
         <strong>Train washing machine</strong>
+        ${!W.enabled?'<span style="font-size:9px;color:var(--tter);font-style:italic">excluded</span>':''}
       </div>
     </td>
     <td class="r" style="color:var(--tsec)">${W.trains} trains</td>
@@ -732,7 +746,35 @@ const W = {
   trains:30, length:120, freq:2,
   gross:7.5, recycle:70, wprice:3.50,
   det_qty:0.04, det_price:3.50,
+  enabled:true, include_water:true, include_det:true,
 };
+
+function updateWashUiState(){
+  const enabledEl = document.getElementById('w_enabled');
+  const waterEl = document.getElementById('w_include_water');
+  const detEl = document.getElementById('w_include_det');
+  if(enabledEl) enabledEl.checked = !!W.enabled;
+  if(waterEl){
+    waterEl.checked = !!W.include_water;
+    waterEl.disabled = !W.enabled;
+  }
+  if(detEl){
+    detEl.checked = !!W.include_det;
+    detEl.disabled = !W.enabled;
+  }
+  const waterCard = document.getElementById('wash-water-card');
+  const detCard = document.getElementById('wash-det-card');
+  if(waterCard) waterCard.classList.toggle('disabled', !W.enabled || !W.include_water);
+  if(detCard) detCard.classList.toggle('disabled', !W.enabled || !W.include_det);
+  ['w_gross','w_recycle','w_wprice'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.disabled = !W.enabled || !W.include_water;
+  });
+  ['w_det_qty','w_det_price'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.disabled = !W.enabled || !W.include_det;
+  });
+}
 
 function calcWash(){
   const gross_per_wash = W.gross * W.length;          // L/m × train length (m)
@@ -741,10 +783,10 @@ function calcWash(){
   const washes_total = washes_per_train * W.trains;
   const gross_water_total_L = gross_per_wash * washes_total;
   const net_per_wash = gross_per_wash * (1 - W.recycle/100);
-  const water_total_L = net_per_wash * washes_total;
+  const water_total_L = W.enabled && W.include_water ? net_per_wash * washes_total : 0;
   const water_m3 = water_total_L / 1000;
   const water_cost = water_m3 * W.wprice;
-  const det_total_L = det_per_wash * washes_total;
+  const det_total_L = W.enabled && W.include_det ? det_per_wash * washes_total : 0;
   const det_cost = det_total_L * W.det_price;
   const total = water_cost + det_cost;
   return {gross_per_wash, det_per_wash, washes_per_train, washes_total, gross_water_total_L, net_per_wash, water_total_L, water_m3, water_cost, det_total_L, det_cost, total};
@@ -784,6 +826,13 @@ function updateWash(){
     const el=document.getElementById(k);
     if(el) W[k.replace('w_','')]=+el.value||0;
   });
+  const enabledEl = document.getElementById('w_enabled');
+  const waterEl = document.getElementById('w_include_water');
+  const detEl = document.getElementById('w_include_det');
+  if(enabledEl) W.enabled = !!enabledEl.checked;
+  if(waterEl) W.include_water = !!waterEl.checked;
+  if(detEl) W.include_det = !!detEl.checked;
+  updateWashUiState();
   renderWash();
   if(document.getElementById('pane-results').classList.contains('active')) renderResults();
   if(document.getElementById('pane-washing').classList.contains('active')) renderWash();
@@ -795,14 +844,18 @@ function renderWash(){
   const years = G.years;
   const waterUnit = getCurrencyUnit('/m³');
   const detUnit = getCurrencyUnit('/L');
+  updateWashUiState();
+  const washEnabled = !!W.enabled;
+  const waterIncluded = washEnabled && !!W.include_water;
+  const detIncluded = washEnabled && !!W.include_det;
 
   // KPI cards
   document.getElementById('wash-kpi').innerHTML=[
     {l:'Washes per train/yr',   v:Math.round(c.washes_per_train).toLocaleString('en-US'), u:`every ${W.freq} day(s) · ${Math.round(c.washes_total).toLocaleString('en-US')} total passes/yr`, cls:'teal'},
-    {l:'Net water billed/yr',   v:fM(c.water_m3),   u:`gross ${fN(c.gross_water_total_L/1000,1).toLocaleString('en-US')} m³ → ${W.recycle}% recycled`, cls:'teal'},
-    {l:'Annual water cost',     v:fE(c.water_cost),  u:`at ${W.wprice} ${waterUnit}`, cls:'blue'},
-    {l:'Annual detergent cost', v:fE(c.det_cost),    u:`${Math.round(c.det_total_L).toLocaleString('en-US')} L/yr at ${W.det_price} ${detUnit}`, cls:'amber'},
-    {l:'Total annual OPEX',     v:fE(c.total),       u:`water + detergent · ×${years} yrs = ${fE(c.total*years)}`, cls:'purple'},
+    {l:'Net water billed/yr',   v:waterIncluded ? fM(c.water_m3) : '—',   u:waterIncluded ? `gross ${fN(c.gross_water_total_L/1000,1).toLocaleString('en-US')} m³ → ${W.recycle}% recycled` : (washEnabled ? 'water cost excluded' : 'train washing excluded'), cls:'teal'},
+    {l:'Annual water cost',     v:waterIncluded ? fE(c.water_cost) : '—',  u:waterIncluded ? `at ${W.wprice} ${waterUnit}` : 'not included in OPEX', cls:'blue'},
+    {l:'Annual detergent cost', v:detIncluded ? fE(c.det_cost) : '—',    u:detIncluded ? `${Math.round(c.det_total_L).toLocaleString('en-US')} L/yr at ${W.det_price} ${detUnit}` : 'not included in OPEX', cls:'amber'},
+    {l:'Total annual OPEX',     v:washEnabled ? fE(c.total) : '—',       u:washEnabled ? `selected washing costs · ×${years} yrs = ${fE(c.total*years)}` : 'train washing not included', cls:'purple'},
   ].map(k=>`<div class="kpi ${k.cls}">
     <div class="kpi-l">${k.l}</div>
     <div class="kpi-v" style="font-size:${k.v.length>9?'14px':'20px'}">${k.v}</div>
@@ -812,27 +865,33 @@ function renderWash(){
   // Rec bar
   const gdEl=document.getElementById('w_gross_disp');
   if(gdEl) gdEl.value=Math.round(c.gross_per_wash).toLocaleString('en-US')+' L/wash';
-  document.getElementById('rec-net-val').textContent = Math.round(c.net_per_wash).toLocaleString('en-US') + ' L';
-  document.getElementById('rec-note').textContent = `= ${W.length}m × ${W.gross} L/m = ${Math.round(c.gross_per_wash).toLocaleString()} L gross × (1 − ${W.recycle}%) recycled`;
+  document.getElementById('rec-net-val').textContent = waterIncluded ? Math.round(c.net_per_wash).toLocaleString('en-US') + ' L' : '—';
+  document.getElementById('rec-note').textContent = waterIncluded
+    ? `= ${W.length}m × ${W.gross} L/m = ${Math.round(c.gross_per_wash).toLocaleString()} L gross × (1 − ${W.recycle}%) recycled`
+    : (washEnabled ? 'Water cost excluded from train washing OPEX' : 'Train washing excluded from OPEX');
 
   // Water formula
   document.getElementById('wash-formula-water').innerHTML =
-    `<strong style="color:var(--teal)">Water — annual calculation</strong><br>
+    waterIncluded
+    ? `<strong style="color:var(--teal)">Water — annual calculation</strong><br>
 Gross/wash = ${W.length} m × ${W.gross} L/m = <span class="hi">${Math.round(c.gross_per_wash).toLocaleString()} L/wash</span><br>
 Net/wash = ${Math.round(c.gross_per_wash).toLocaleString()} L × (1 − ${W.recycle}%) = <span class="hi">${Math.round(c.net_per_wash).toLocaleString()} L/wash</span><br>
 Washes/yr = 365 ÷ ${W.freq} days × ${W.trains} trains = <span class="hi">${Math.round(c.washes_total).toLocaleString()} passes</span><br>
 Total net water = ${Math.round(c.net_per_wash).toLocaleString()} × ${Math.round(c.washes_total).toLocaleString()} = <span class="hi">${Math.round(c.water_total_L).toLocaleString()} L</span><br>
 Volume billed = <span class="hi">${fN(c.water_m3,1).toLocaleString()} m³/yr</span><br>
-Water cost = ${fN(c.water_m3,1)} m³ × ${W.wprice} ${waterUnit} = <span class="hi">${fE(c.water_cost)}/yr</span>`;
+Water cost = ${fN(c.water_m3,1)} m³ × ${W.wprice} ${waterUnit} = <span class="hi">${fE(c.water_cost)}/yr</span>`
+    : `<strong style="color:var(--teal)">Water — annual calculation</strong><br>${washEnabled ? 'Water cost is excluded from the train washing estimate.' : 'Train washing is excluded from the OPEX estimate.'}`;
 
   // Detergent formula
   document.getElementById('wash-formula-det').innerHTML =
-    `<strong style="color:var(--amber)">Detergent — annual calculation</strong><br>
+    detIncluded
+    ? `<strong style="color:var(--amber)">Detergent — annual calculation</strong><br>
 Per wash = ${W.length} m × ${W.det_qty} L/m = <span class="hd">${fN(c.det_per_wash,2)} L/wash</span><br>
 Consumption/yr = ${fN(c.det_per_wash,2)} L × ${Math.round(c.washes_total).toLocaleString()} passes = <span class="hd">${Math.round(c.det_total_L).toLocaleString()} L/yr</span><br>
 Detergent cost = ${Math.round(c.det_total_L).toLocaleString()} L × ${W.det_price} ${detUnit} = <span class="hd">${fE(c.det_cost)}/yr</span><br><br>
 <span class="ht">Total (water + detergent) = ${fE(c.total)}/yr</span><br>
-<span class="ht">Over ${years} years = ${fE(c.total*years)}</span>`;
+<span class="ht">Over ${years} years = ${fE(c.total*years)}</span>`
+    : `<strong style="color:var(--amber)">Detergent — annual calculation</strong><br>${washEnabled ? 'Detergent cost is excluded from the train washing estimate.' : 'Train washing is excluded from the OPEX estimate.'}`;
 }
 
 

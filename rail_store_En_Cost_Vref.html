@@ -987,6 +987,67 @@ function publishSummaryMetrics(){
   }catch{}
 }
 
+function getStoreGeometryNote(type){
+  if(type === 'Pallet rack bays'){
+    return `Pallet ${P.pal_w}×${P.pal_d}×${P.pal_h} m; bay ${C.bay_W}×${C.bay_D} m; ${P.pal_bay} pos/bay/level; ${C.N_lev} levels; frame h ${C.h_frame} m`;
+  }
+  if(type === 'Shelving modules'){
+    return `Module ${P.she_L}×${P.she_D}×${P.she_H} m; ${P.she_lv} shelf levels`;
+  }
+  if(type === 'Cantilever bays'){
+    return `Arm ${P.can_a} m; column h ${P.can_H} m; ${P.can_lv} arm levels; bay pitch ${P.can_bL} m`;
+  }
+  if(type === 'Floor places'){
+    return `Place ${P.flo_W}×${P.flo_D} m`;
+  }
+  if(type === 'Dedicated zone'){
+    return `Dedicated area benchmark per m²; recommended zone ${C.ded_m2} m²`;
+  }
+  return '';
+}
+
+function getExportRows(){
+  recalc();
+  const CP = COST.prices;
+  const lines = [
+    {equipmentType:'Pallet rack bays', qty:C.pal_bays,   unit:'bays',   unitPrice:CP.pal},
+    {equipmentType:'Shelving modules', qty:C.she_modules, unit:'modules',unitPrice:CP.she},
+    {equipmentType:'Cantilever bays',  qty:C.can_bays,    unit:'bays',   unitPrice:CP.can},
+    {equipmentType:'Floor places',     qty:C.flo_places,  unit:'places', unitPrice:CP.flo},
+    {equipmentType:'Dedicated zone',   qty:C.ded_m2,      unit:'m²',     unitPrice:CP.ded},
+  ];
+  return lines.map(line=>{
+    const qty = Number(line.qty || 0);
+    if(qty <= 0) return null;
+    return {
+      equipmentType:line.equipmentType,
+      qty,
+      unit:line.unit,
+      simulatorUnitPrice:line.unitPrice,
+      simulatorTotalCapex:Math.round(qty * line.unitPrice),
+      geometry:getStoreGeometryNote(line.equipmentType),
+      suggestedSupplier:'',
+      suggestedReference:'',
+      distributorQuotedUnitPrice:'',
+      quotedCurrency:getCurrencyCode(),
+      leadTime:'',
+      comments:'',
+    };
+  }).filter(Boolean);
+}
+
+function publishExportData(){
+  try{
+    if(window.parent && window.parent !== window){
+      window.parent.postMessage({
+        type:'depot-suite-export-data',
+        source:'store',
+        payload:{ rows:getExportRows() },
+      }, '*');
+    }
+  }catch{}
+}
+
 // ─── INIT ────────────────────────────────────────────────────────────────────
 syncProfileFromSharedContext(true);
 recalc();
@@ -1006,6 +1067,10 @@ window.addEventListener('message', e=>{
   }
   if(data.type === 'depot-suite-summary-request'){
     publishSummaryMetrics();
+    return;
+  }
+  if(data.type === 'depot-suite-export-request'){
+    publishExportData();
   }
 });
 
