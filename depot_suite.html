@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Depot Suite - Unified Simulator Hub</title>
+<title>Depot Support Cost Simulator</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -46,7 +46,88 @@ body{
     radial-gradient(circle at top right, rgba(15,118,110,.10), transparent 24%),
     linear-gradient(180deg, #F8FAFC 0%, #EEF2F7 100%);
 }
+.body-locked{overflow:hidden}
 .app-shell{min-height:100vh}
+.app-shell.hidden{display:none}
+.auth-shell{
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  padding:24px;
+}
+.auth-shell.hidden{display:none}
+.auth-card{
+  width:min(460px, 100%);
+  background:rgba(255,255,255,.92);
+  border:1px solid rgba(203,213,225,.95);
+  border-radius:20px;
+  box-shadow:var(--shadow);
+  padding:28px 24px 24px;
+}
+.auth-kicker{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font:600 10px var(--sans);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--blueD);
+  background:var(--blueL);
+  border:1px solid #BFDBFE;
+  border-radius:999px;
+  padding:5px 10px;
+  margin-bottom:16px;
+}
+.auth-title{
+  font-size:28px;
+  line-height:1.05;
+  margin-bottom:10px;
+}
+.auth-copy{
+  font-size:14px;
+  line-height:1.7;
+  color:var(--text2);
+  margin-bottom:18px;
+}
+.auth-form{display:flex;flex-direction:column;gap:14px}
+.auth-field{display:flex;flex-direction:column;gap:6px}
+.auth-field label{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text2);
+}
+.auth-field input{
+  font-family:var(--mono);
+  font-size:14px;
+  padding:12px 14px;
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  background:#fff;
+  color:var(--text);
+  outline:none;
+}
+.auth-field input:focus{
+  border-color:#3B82F6;
+  box-shadow:0 0 0 3px rgba(59,130,246,.12);
+}
+.auth-actions{display:flex;gap:10px;align-items:center}
+.auth-submit{
+  appearance:none;
+  border:none;
+  border-radius:10px;
+  background:var(--bg);
+  color:#fff;
+  font:600 13px var(--sans);
+  padding:12px 16px;
+  cursor:pointer;
+}
+.auth-error{
+  min-height:18px;
+  font-size:12px;
+  color:var(--red);
+}
 .app-header{
   position:sticky;
   top:0;
@@ -250,6 +331,9 @@ body{
   border:1px solid rgba(203,213,225,.95);
   border-radius:var(--radiusLg);
   box-shadow:var(--shadow);
+}
+.context-library{
+  padding:18px;
 }
 .context-form{
   padding:18px 18px 16px;
@@ -687,16 +771,33 @@ body{
 }
 </style>
 </head>
-<body>
-<div class="app-shell">
+<body class="body-locked">
+<div class="auth-shell" id="auth-shell">
+  <section class="auth-card" aria-labelledby="auth-title">
+    <div class="auth-kicker">Protected Access</div>
+    <h1 class="auth-title" id="auth-title">Depot Support Cost Simulator</h1>
+    <p class="auth-copy">Enter the access password to open the simulator.</p>
+    <form class="auth-form" id="auth-form">
+      <div class="auth-field">
+        <label for="auth-password">Password</label>
+        <input type="password" id="auth-password" autocomplete="current-password" required>
+      </div>
+      <div class="auth-actions">
+        <button class="auth-submit" type="submit">Open hub</button>
+      </div>
+      <div class="auth-error" id="auth-error" aria-live="polite"></div>
+    </form>
+  </section>
+</div>
+<div class="app-shell hidden" id="app-shell">
   <header class="app-header">
-    <div class="app-logo">◼ DEPOT SUITE</div>
+    <div class="app-logo">◼ DEPOT SUPPORT COST</div>
     <div class="app-head-copy">
-      <div class="app-title">Unified Simulator Hub</div>
-      <div class="app-subtitle" id="app-subtitle">One interface for depot fit-out, store sizing, and vehicles and washing costs</div>
+      <div class="app-title">Depot Support Cost Simulator</div>
+      <div class="app-subtitle" id="app-subtitle">Fit-out, store sizing, vehicles and washing costs with project-level consolidation</div>
     </div>
     <div class="header-spacer"></div>
-    <div class="app-badge">Phase 1 Integration</div>
+    <div class="app-badge">Created by Mohamed BOUDIA</div>
   </header>
 
   <div class="topbar">
@@ -711,13 +812,13 @@ body{
   <main class="page">
     <section class="hero">
       <div class="hero-main">
-        <div class="hero-kicker">Unified Navigation Layer</div>
-        <h1>Three simulators, one entry point.</h1>
-        <p>This interface brings the three existing tools together without merging their business logic. Each simulator keeps its own calculations, internal tabs, and structure, but you no longer need to switch between scattered files.</p>
+        <div class="hero-kicker">Project Costing</div>
+        <h1>Estimate depot support costs in one place.</h1>
+        <p>Build project scenarios across fit-out, store sizing, and maintenance support vehicles, then review a consolidated cost view at hub level.</p>
         <div class="hero-meta">
-          <div class="meta-pill">Saved navigation</div>
-          <div class="meta-pill">Lazy loading</div>
-          <div class="meta-pill">Direct access to source files</div>
+          <div class="meta-pill">Project-based costing</div>
+          <div class="meta-pill">Saved scenarios</div>
+          <div class="meta-pill">Excel export</div>
         </div>
       </div>
 
@@ -748,7 +849,7 @@ body{
     </section>
 
     <section class="context-strip" style="grid-template-columns:1fr">
-      <div class="context-card">
+      <div class="context-card context-library">
         <div class="context-head">
           <div>
             <div class="context-title">Project Library</div>
@@ -1041,6 +1142,8 @@ const PROJECT_DB_NAME = 'depot-suite-projects';
 const PROJECT_DB_VERSION = 1;
 const PROJECT_STORE_NAME = 'projects';
 const CURRENT_PROJECT_KEY = 'depot-suite-current-project-id';
+const AUTH_SESSION_KEY = 'depot-suite-auth-ok';
+const HUB_PASSWORD = 'mohamed';
 const DEFAULT_CONTEXT = {
   projectName:'',
   contextType:'',
@@ -2347,7 +2450,50 @@ async function initHub(){
   }
 }
 
-initHub();
+function unlockHub(){
+  document.body.classList.remove('body-locked');
+  document.getElementById('auth-shell')?.classList.add('hidden');
+  document.getElementById('app-shell')?.classList.remove('hidden');
+}
+
+function lockHub(){
+  document.body.classList.add('body-locked');
+  document.getElementById('auth-shell')?.classList.remove('hidden');
+  document.getElementById('app-shell')?.classList.add('hidden');
+}
+
+async function startHub(){
+  unlockHub();
+  await initHub();
+}
+
+const authForm = document.getElementById('auth-form');
+const authPasswordInput = document.getElementById('auth-password');
+const authError = document.getElementById('auth-error');
+
+authForm?.addEventListener('submit', async e=>{
+  e.preventDefault();
+  const value = authPasswordInput?.value || '';
+  if(value !== HUB_PASSWORD){
+    if(authError) authError.textContent = 'Incorrect password.';
+    if(authPasswordInput){
+      authPasswordInput.value = '';
+      authPasswordInput.focus();
+    }
+    return;
+  }
+  sessionStorage.setItem(AUTH_SESSION_KEY, '1');
+  if(authError) authError.textContent = '';
+  await startHub();
+});
+
+if(sessionStorage.getItem(AUTH_SESSION_KEY) === '1'){
+  startHub();
+}else{
+  lockHub();
+  authPasswordInput?.focus();
+}
 </script>
 </body>
 </html>
+
