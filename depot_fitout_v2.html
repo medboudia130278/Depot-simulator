@@ -435,6 +435,10 @@ function evalQty(expr){
   try{return Math.max(0,Math.round(evalQtyValue(expr)));}catch{return 0;}
 }
 
+function formatQtyExpr(expr){
+  return String(expr || '').replace(/Math\.ceil\(([^)]+)\)/g, 'ceil($1)');
+}
+
 function isCustomItem(it){return !!(it && it.custom);}
 function getAllItems(){return [...ITEMS, ...CUSTOM_ITEMS];}
 function getCategoryMeta(cat){
@@ -1062,7 +1066,7 @@ function renderItems(){
           </div>
         </td>
         <td style="font-weight:500;font-size:12px">${escapedName}${isCustomItem(it) ? '<span class="custom-badge">Custom</span>' : ''}</td>
-        <td style="font-size:11px;color:var(--tsec)">${isCustomItem(it) ? 'Manual' : it.qtyExpr.replace(/Math\.ceil\(([^)]+)\)/,(m,g)=>'âŒˆ'+g+'âŒ‰')}</td>
+        <td style="font-size:11px;color:var(--tsec)">${isCustomItem(it) ? 'Manual' : formatQtyExpr(it.qtyExpr)}</td>
         <td style="text-align:right">
           ${isCustomItem(it)
             ? `<input type="number" class="amber" value="${qty}" min="0" step="1"
@@ -1076,14 +1080,14 @@ function renderItems(){
         </td>
         <td style="text-align:right">
           ${it.capex>0 || isCustomItem(it)?`<input type="number" class="amber" value="${it.capex}" min="0" step="10"
-            oninput='${isCustomItem(it) ? `updateCustomItemField(${JSON.stringify(it.id)}, "capex", this.value)` : `ITEMS[${it.id}].capex=+this.value;syncItemChanges()`}' style="width:80px" ${included ? '' : 'disabled'}>`:'<span style="color:var(--tter)">â€”</span>'}
+            oninput='${isCustomItem(it) ? `updateCustomItemField(${JSON.stringify(it.id)}, "capex", this.value)` : `ITEMS[${it.id}].capex=+this.value;syncItemChanges()`}' style="width:80px" ${included ? '' : 'disabled'}>`:'<span style="color:var(--tter)">-</span>'}
         </td>
-        <td class="total-cap">${included && cap>0?fmtE(cap):'â€”'}</td>
+        <td class="total-cap">${included && cap>0?fmtE(cap):'-'}</td>
         <td style="text-align:right">
           ${it.rec>0 || isCustomItem(it)?`<input type="number" class="amber" value="${it.rec}" min="0" step="5"
-            oninput='${isCustomItem(it) ? `updateCustomItemField(${JSON.stringify(it.id)}, "rec", this.value)` : `ITEMS[${it.id}].rec=+this.value;syncItemChanges()`}' style="width:80px" ${included ? '' : 'disabled'}>`:'<span style="color:var(--tter)">â€”</span>'}
+            oninput='${isCustomItem(it) ? `updateCustomItemField(${JSON.stringify(it.id)}, "rec", this.value)` : `ITEMS[${it.id}].rec=+this.value;syncItemChanges()`}' style="width:80px" ${included ? '' : 'disabled'}>`:'<span style="color:var(--tter)">-</span>'}
         </td>
-        <td class="total-rec">${included && rec>0?fmtE(rec):'â€”'}</td>
+        <td class="total-rec">${included && rec>0?fmtE(rec):'-'}</td>
         <td class="rec-note">
           ${isCustomItem(it)
             ? `<input type="text" value="${escapedNote}" placeholder="Optional note"
@@ -1093,7 +1097,7 @@ function renderItems(){
         <td>
           ${isCustomItem(it)
             ? `<button class="items-toolbtn" type="button" onclick='deleteCustomItem(${JSON.stringify(it.id)})'>Delete</button>`
-            : '<span style="color:var(--tter)">â€”</span>'}
+            : '<span style="color:var(--tter)">-</span>'}
         </td>
       </tr>`);
     }
@@ -1105,7 +1109,7 @@ function renderItems(){
     <td style="font-family:var(--mono);text-align:right;font-weight:700;color:var(--blue)">${fmtE(totalCap)}</td>
     <td></td>
     <td style="font-family:var(--mono);text-align:right;font-weight:700;color:var(--teal)">${fmtE(totalRec)}</td>
-    <td colspan="2" style="font-size:11px;color:var(--tsec)">Ã— ${P.n_years} yrs = ${fmtE(totalRec*P.n_years)}</td>
+    <td colspan="2" style="font-size:11px;color:var(--tsec)">x ${P.n_years} yrs = ${fmtE(totalRec*P.n_years)}</td>
   </tr>`);
   rows.push('</tbody>');
   document.getElementById('items-tbl').innerHTML=rows.join('');
