@@ -276,7 +276,7 @@ const CATS = {
   'Warehouse Equipment': {color:'#0369A1', fill:'#E0F2FE'},
 };
 
-const ITEMS = [
+const RAW_ITEMS = [
   // Technical Workshop
   {cat:'Technical Workshop', name:'Workbench',                 qtyExpr:'n_tech',             capex:350, rec:0,   recNote:''},
   {cat:'Technical Workshop', name:'Workshop stool',            qtyExpr:'n_tech',             capex:120, rec:0,   recNote:''},
@@ -303,7 +303,7 @@ const ITEMS = [
   {cat:'Electronics Workshop', name:'Anti-static vacuum (shared) — Nilfisk UZ934 ESD / Ruwac DS1400',       qtyExpr:'1',                         capex:420, rec:50,  recNote:'HEPA filter replacement/yr'},
   // UPS: 1 unit per 3 benches to protect instruments from power transients
   {cat:'Electronics Workshop', name:'UPS for instrument protection (1 per 3 stations)',                               qtyExpr:'Math.ceil(n_bench/3)',       capex:320, rec:55,  recNote:'Battery replacement prorated/yr'},
-  {cat:'Electronics Workshop', name:'3D printer (shared enclosed FDM unit for prototype parts and maintenance jigs)', qtyExpr:'1',                         capex:3200, rec:450, recNote:'Filament, spare nozzles, build plates, routine service and small replacement parts/yr'},
+  {cat:'Electronics Workshop', name:'3D printer (shared enclosed FDM unit for prototype parts and maintenance jigs)', qtyExpr:'1',                         capex:3200, rec:450, recNote:'Filament, spare nozzles, build plates, routine service and small replacement parts/yr', legacyNumericId:null},
 
   // Engineering Office
   {cat:'Engineering Office', name:'Desk',                      qtyExpr:'n_eng',              capex:450, rec:0,   recNote:''},
@@ -359,7 +359,16 @@ const ITEMS = [
   {cat:'Warehouse Equipment', name:'Pallet jack scale (weighing)',
     qtyExpr:'1', capex:950, rec:55,
     recNote:'Annual calibration (legal metrology). For incoming goods control.'},
-].map((it,i)=>({...it, id:i, _capex:it.capex, _rec:it.rec}));
+];
+let legacyNumericIdCursor = 0;
+const ITEMS = RAW_ITEMS.map((it,i)=>({
+  ...it,
+  id:buildStableItemId(it),
+  currentNumericId:i,
+  legacyNumericId:Object.prototype.hasOwnProperty.call(it, 'legacyNumericId') ? it.legacyNumericId : legacyNumericIdCursor++,
+  _capex:it.capex,
+  _rec:it.rec
+}));
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const P = {n_tech:20,n_eng:5,n_mgr:3,n_bench:1,n_arch:8,n_screens:3,n_water:4,n_wash:2,n_dry:2,n_extg:12,n_firstaid:4,n_years:10, n_ptruck_m:2, n_ptruck_e:1};
@@ -437,6 +446,36 @@ function evalQty(expr){
 
 function formatQtyExpr(expr){
   return String(expr || '').replace(/Math\.ceil\(([^)]+)\)/g, 'ceil($1)');
+}
+
+function slugifyItemToken(value){
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'')
+    .replace(/-+/g,'-');
+}
+
+function buildStableItemId(it){
+  return `${slugifyItemToken(it.cat)}__${slugifyItemToken(it.name)}`;
+}
+
+function findStandardItemBySavedId(savedId){
+  const raw = typeof savedId === 'string' ? savedId : String(savedId);
+  const direct = ITEMS.find(it=>it.id===savedId || it.id===raw);
+  if(direct) return direct;
+  const num = Number(savedId);
+  if(Number.isFinite(num)){
+    return ITEMS.find(it=>it.currentNumericId===num) || ITEMS.find(it=>it.legacyNumericId===num) || null;
+  }
+  return null;
+}
+
+function updateStandardItemField(id, field, value){
+  const item = ITEMS.find(it=>it.id===id);
+  if(!item) return;
+  item[field] = Math.max(0, Number(value)||0);
+  syncItemChanges();
 }
 
 function isCustomItem(it){return !!(it && it.custom);}
@@ -667,7 +706,8 @@ function applyProjectState(state){
   Object.keys(QTY_OVERRIDE).forEach(key=>delete QTY_OVERRIDE[key]);
   if(state.qtyOverride && typeof state.qtyOverride==='object'){
     Object.entries(state.qtyOverride).forEach(([key,val])=>{
-      QTY_OVERRIDE[key] = val;
+      const item = findStandardItemBySavedId(key);
+      if(item) QTY_OVERRIDE[item.id] = val;
     });
   }
   ITEMS.forEach(it=>{
@@ -682,12 +722,13 @@ function applyProjectState(state){
     .forEach(key=>delete ITEM_INCLUDED[key]);
   if(state.itemIncluded && typeof state.itemIncluded==='object'){
     Object.entries(state.itemIncluded).forEach(([key,val])=>{
-      ITEM_INCLUDED[key] = !!val;
+      const item = findStandardItemBySavedId(key);
+      ITEM_INCLUDED[item ? item.id : key] = !!val;
     });
   }
   if(Array.isArray(state.itemValues)){
     state.itemValues.forEach(saved=>{
-      const item = ITEMS.find(it=>it.id===saved.id);
+      const item = findStandardItemBySavedId(saved.id);
       if(!item) return;
       if(saved.capex !== undefined) item.capex = saved.capex;
       if(saved.rec !== undefined) item.rec = saved.rec;
@@ -1074,18 +1115,18 @@ function renderItems(){
                 ${included ? '' : 'disabled'}
                 title="Manual quantity">`
             : `<input type="number" class="${isOverride?'amber':'grey'}" value="${qty}" min="0" step="1"
-                oninput="QTY_OVERRIDE[${it.id}]=+this.value;this.className='amber';syncItemChanges()"
+                oninput='QTY_OVERRIDE[${JSON.stringify(it.id)}]=+this.value;this.className="amber";syncItemChanges()'
                 ${included ? '' : 'disabled'}
                 title="Auto: ${autoQty}. Edit to override.">`}
         </td>
         <td style="text-align:right">
           ${it.capex>0 || isCustomItem(it)?`<input type="number" class="amber" value="${it.capex}" min="0" step="10"
-            oninput='${isCustomItem(it) ? `updateCustomItemField(${JSON.stringify(it.id)}, "capex", this.value)` : `ITEMS[${it.id}].capex=+this.value;syncItemChanges()`}' style="width:80px" ${included ? '' : 'disabled'}>`:'<span style="color:var(--tter)">-</span>'}
+            oninput='${isCustomItem(it) ? `updateCustomItemField(${JSON.stringify(it.id)}, "capex", this.value)` : `updateStandardItemField(${JSON.stringify(it.id)}, "capex", this.value)`}' style="width:80px" ${included ? '' : 'disabled'}>`:'<span style="color:var(--tter)">-</span>'}
         </td>
         <td class="total-cap">${included && cap>0?fmtE(cap):'-'}</td>
         <td style="text-align:right">
           ${it.rec>0 || isCustomItem(it)?`<input type="number" class="amber" value="${it.rec}" min="0" step="5"
-            oninput='${isCustomItem(it) ? `updateCustomItemField(${JSON.stringify(it.id)}, "rec", this.value)` : `ITEMS[${it.id}].rec=+this.value;syncItemChanges()`}' style="width:80px" ${included ? '' : 'disabled'}>`:'<span style="color:var(--tter)">-</span>'}
+            oninput='${isCustomItem(it) ? `updateCustomItemField(${JSON.stringify(it.id)}, "rec", this.value)` : `updateStandardItemField(${JSON.stringify(it.id)}, "rec", this.value)`}' style="width:80px" ${included ? '' : 'disabled'}>`:'<span style="color:var(--tter)">-</span>'}
         </td>
         <td class="total-rec">${included && rec>0?fmtE(rec):'-'}</td>
         <td class="rec-note">
