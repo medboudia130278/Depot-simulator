@@ -278,9 +278,9 @@ const CATS = {
 
 const RAW_ITEMS = [
   // Technical Workshop
-  {cat:'Technical Workshop', name:'Workbench',                 qtyExpr:'n_tech',             capex:350, rec:0,   recNote:''},
+  {cat:'Technical Workshop', name:'Workbench',                 qtyExpr:'n_tech',             capex:616, rec:0,   recNote:''},
   {cat:'Technical Workshop', name:'Workshop stool',            qtyExpr:'n_tech',             capex:120, rec:0,   recNote:''},
-  {cat:'Technical Workshop', name:'Locked tool cabinet',       qtyExpr:'Math.ceil(n_tech/2)',capex:450, rec:0,   recNote:''},
+  {cat:'Technical Workshop', name:'Locked tool cabinet',       qtyExpr:'Math.ceil(n_tech/2)',capex:620, rec:0,   recNote:''},
   {cat:'Technical Workshop', name:'Anti-fatigue mat',          qtyExpr:'n_tech',             capex:45,  rec:15,  recNote:'prorated replacement every 3 yrs'},
   {cat:'Technical Workshop', name:'Workstation task lamp',     qtyExpr:'n_tech',             capex:85,  rec:0,   recNote:''},
   {cat:'Technical Workshop', name:'Waste + sorting bin set',   qtyExpr:'Math.ceil(n_tech/4)',capex:95,  rec:30,  recNote:'bin bags & hazardous waste disposal/yr'},
@@ -302,7 +302,7 @@ const RAW_ITEMS = [
   // Shared anti-static vacuum (HEPA + ESD-dissipative hose) — 1 per workshop
   {cat:'Electronics Workshop', name:'Anti-static vacuum (shared) — Nilfisk UZ934 ESD / Ruwac DS1400',       qtyExpr:'1',                         capex:420, rec:50,  recNote:'HEPA filter replacement/yr'},
   // UPS: 1 unit per 3 benches to protect instruments from power transients
-  {cat:'Electronics Workshop', name:'UPS for instrument protection (1 per 3 stations)',                               qtyExpr:'Math.ceil(n_bench/3)',       capex:320, rec:55,  recNote:'Battery replacement prorated/yr'},
+  {cat:'Electronics Workshop', name:'UPS for instrument protection (1 per 3 stations)',                               qtyExpr:'Math.ceil(n_bench/3)',       capex:821, rec:55,  recNote:'Battery replacement prorated/yr'},
   {cat:'Electronics Workshop', name:'3D printer (shared enclosed FDM unit for prototype parts and maintenance jigs)', qtyExpr:'1',                         capex:3200, rec:450, recNote:'Filament, spare nozzles, build plates, routine service and small replacement parts/yr', legacyNumericId:null},
 
   // Engineering Office
@@ -330,8 +330,8 @@ const RAW_ITEMS = [
   {cat:'Common Areas', name:'Office supplies (forfait/person)',qtyExpr:'n_tech+n_eng+n_mgr', capex:0,   rec:180, recNote:'pens, paper, markers, stapler, labels/yr'},
 
   // Locker Room
-  {cat:'Locker Room', name:'Personal locker (vestiaire)',      qtyExpr:'n_tech+n_eng',       capex:180, rec:0,   recNote:''},
-  {cat:'Locker Room', name:'Locker room bench',                qtyExpr:'Math.ceil((n_tech+n_eng)/5)', capex:220, rec:0, recNote:''},
+  {cat:'Locker Room', name:'Personal locker (vestiaire)',      qtyExpr:'n_tech+n_eng',       capex:264, rec:0,   recNote:''},
+  {cat:'Locker Room', name:'Locker room bench',                qtyExpr:'Math.ceil((n_tech+n_eng)/5)', capex:339, rec:0, recNote:''},
   {cat:'Locker Room', name:'Industrial washing machine',       qtyExpr:'n_wash',             capex:2400,rec:380, recNote:'maintenance + detergent/yr per machine'},
   {cat:'Locker Room', name:'Industrial dryer',                 qtyExpr:'n_dry',              capex:1800,rec:280, recNote:'maintenance/yr per machine'},
   {cat:'Locker Room', name:'Boot dryer rack',                  qtyExpr:'1',                  capex:280, rec:0,   recNote:''},
@@ -351,13 +351,13 @@ const RAW_ITEMS = [
     qtyExpr:'n_ptruck_m', capex:680, rec:40,
     recNote:'Annual service (seals, pump, wheels) per unit. Ref: Jungheinrich AM 22 / Crown PTH 50 / Toyota BT Lifter'},
   {cat:'Warehouse Equipment', name:'Electric walkie pallet truck',
-    qtyExpr:'n_ptruck_e', capex:5800, rec:380,
+    qtyExpr:'n_ptruck_e', capex:7270, rec:380,
     recNote:'Annual service + battery maintenance per unit. Ref: Jungheinrich EJE 120 / Crown WP 3000 / Toyota LWE160'},
   {cat:'Warehouse Equipment', name:'Pallet truck battery charger',
     qtyExpr:'n_ptruck_e', capex:420, rec:0,
     recNote:'Dedicated wall-mounted charger per electric truck'},
   {cat:'Warehouse Equipment', name:'Pallet jack scale (weighing)',
-    qtyExpr:'1', capex:950, rec:55,
+    qtyExpr:'1', capex:1427, rec:55,
     recNote:'Annual calibration (legal metrology). For incoming goods control.'},
 ];
 let legacyNumericIdCursor = 0;
