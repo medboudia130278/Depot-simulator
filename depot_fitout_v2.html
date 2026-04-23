@@ -343,6 +343,7 @@ const RAW_ITEMS = [
   {cat:'Safety & Emergency', name:'Eye wash station',          qtyExpr:'1',                  capex:380, rec:0,   recNote:''},
   {cat:'Safety & Emergency', name:'Defibrillator (AED)',       qtyExpr:'1',                  capex:1800,rec:120, recNote:'annual maintenance + electrode pads'},
   {cat:'Safety & Emergency', name:'Hazardous materials cabinet',qtyExpr:'1',                 capex:850, rec:0,   recNote:'ATEX-rated, chemical storage'},
+  {cat:'Safety & Emergency', name:'Bunded spill pallet for oil drums', qtyExpr:'1',          capex:251, rec:0,   recNote:'Secondary containment pallet for oil or chemical drums; 4-drum HDPE benchmark with approx. 230 L sump capacity.'},
   {cat:'Safety & Emergency', name:'Emergency safety shower',   qtyExpr:'1',                  capex:680, rec:0,   recNote:''},
 
 
@@ -354,11 +355,11 @@ const RAW_ITEMS = [
     qtyExpr:'n_ptruck_e', capex:7270, rec:380,
     recNote:'Annual service + battery maintenance per unit. Ref: Jungheinrich EJE 120 / Crown WP 3000 / Toyota LWE160'},
   {cat:'Warehouse Equipment', name:'Pallet truck battery charger',
-    qtyExpr:'n_ptruck_e', capex:420, rec:0,
-    recNote:'Dedicated wall-mounted charger per electric truck'},
-  {cat:'Warehouse Equipment', name:'Pallet jack scale (weighing)',
+    qtyExpr:'n_ptruck_e', capex:60, rec:0,
+    recNote:'External or spare charger per electric truck when not covered by the integrated charger'},
+  {cat:'Warehouse Equipment', name:'Weighing pallet truck for goods receiving',
     qtyExpr:'1', capex:1427, rec:55,
-    recNote:'Annual calibration (legal metrology). For incoming goods control.'},
+    recNote:'Annual legal-metrology calibration. Optional receiving tool; can replace one standard manual pallet truck if the total fleet must stay fixed.'},
 ];
 let legacyNumericIdCursor = 0;
 const ITEMS = RAW_ITEMS.map((it,i)=>({
@@ -456,13 +457,18 @@ function slugifyItemToken(value){
     .replace(/-+/g,'-');
 }
 
+const STABLE_ITEM_ID_ALIASES = {
+  'warehouse-equipment__pallet-jack-scale-weighing': 'warehouse-equipment__weighing-pallet-truck-for-goods-receiving',
+};
+
 function buildStableItemId(it){
   return `${slugifyItemToken(it.cat)}__${slugifyItemToken(it.name)}`;
 }
 
 function findStandardItemBySavedId(savedId){
   const raw = typeof savedId === 'string' ? savedId : String(savedId);
-  const direct = ITEMS.find(it=>it.id===savedId || it.id===raw);
+  const canonical = STABLE_ITEM_ID_ALIASES[raw] || raw;
+  const direct = ITEMS.find(it=>it.id===savedId || it.id===raw || it.id===canonical);
   if(direct) return direct;
   const num = Number(savedId);
   if(Number.isFinite(num)){
