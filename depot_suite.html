@@ -1804,6 +1804,11 @@ function formatCurrencyValue(value, currency){
   }
 }
 
+function toWorkbookNumber(value){
+  if(!Number.isFinite(Number(value))) return '';
+  return Math.round(Number(value));
+}
+
 function getFrameSummaryMetrics(key){
   if(!EMBEDDED_KEYS.includes(key)) return null;
   if(summaryMetricsCache[key]) return cloneJson(summaryMetricsCache[key]);
@@ -1998,27 +2003,27 @@ async function exportProjectWorkbook(){
         ...metaCols,
         'Fit-Out',
         'Depot fit-out budget view',
-        formatCurrencyValue(fitoutSummary.totalCapex, ctx.currency),
-        formatCurrencyValue(fitoutSummary.annualRecurring, ctx.currency),
-        formatCurrencyValue(fitoutSummary.totalOverContract, ctx.currency),
+        toWorkbookNumber(fitoutSummary.totalCapex),
+        toWorkbookNumber(fitoutSummary.annualRecurring),
+        toWorkbookNumber(fitoutSummary.totalOverContract),
         'CAPEX + recurring over contract duration',
       ]},
       {values:[
         ...metaCols,
         'Vehicles & Washing',
         'Fuel, water and detergent OPEX',
-        '—',
-        formatCurrencyValue(vehiclesSummary.annualOpex, ctx.currency),
-        formatCurrencyValue(vehiclesSummary.totalOverContract, ctx.currency),
-        `Fuel share ${formatCurrencyValue(vehiclesSummary.annualFuelCost, ctx.currency)}`,
+        '',
+        toWorkbookNumber(vehiclesSummary.annualOpex),
+        toWorkbookNumber(vehiclesSummary.totalOverContract),
+        `Fuel share ${Math.round(Number(vehiclesSummary.annualFuelCost) || 0).toLocaleString('en-US')}`,
       ]},
       {values:[
         ...metaCols,
         'Store',
         'Equipment CAPEX',
-        formatCurrencyValue(storeSummary.totalEquipmentCapex, ctx.currency),
-        '—',
-        '—',
+        toWorkbookNumber(storeSummary.totalEquipmentCapex),
+        '',
+        '',
         `Reference region ${storeSummary.region}`,
       ]},
     ];
