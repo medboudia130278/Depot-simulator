@@ -749,6 +749,209 @@ body{
   font-size:12px;
   line-height:1.6;
 }
+.catalog-wrap{
+  padding:22px;
+  display:grid;
+  gap:18px;
+}
+.catalog-toolbar{
+  display:grid;
+  grid-template-columns:minmax(220px,1fr) minmax(170px,220px) minmax(190px,260px);
+  gap:12px;
+  align-items:end;
+}
+.catalog-field label{
+  display:block;
+  margin:0 0 6px;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text2);
+}
+.catalog-input{
+  width:100%;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:11px 12px;
+  background:#fff;
+  color:var(--text);
+  font:500 13px var(--sans);
+  outline:none;
+}
+.catalog-input:focus{
+  border-color:#93C5FD;
+  box-shadow:0 0 0 3px rgba(59,130,246,.12);
+}
+.catalog-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+.catalog-meta-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:#fff;
+  color:var(--text2);
+  font-size:11px;
+  font-weight:600;
+}
+.catalog-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
+  gap:14px;
+}
+.catalog-card{
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:#fff;
+  overflow:hidden;
+  box-shadow:0 16px 34px rgba(15,23,42,.05);
+  display:flex;
+  flex-direction:column;
+  min-height:100%;
+}
+.catalog-image-wrap{
+  position:relative;
+  height:210px;
+  background:
+    radial-gradient(circle at top left, rgba(147,197,253,.22), transparent 34%),
+    linear-gradient(135deg,#F8FAFC,#EEF2F7);
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.catalog-image-wrap img{
+  position:absolute;
+  inset:12px;
+  width:calc(100% - 24px);
+  height:calc(100% - 24px);
+  object-fit:contain;
+  opacity:0;
+  transition:opacity .18s ease;
+}
+.catalog-image-wrap img.loaded{opacity:1}
+.catalog-image-placeholder{
+  height:100%;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:18px;
+  color:var(--text2);
+  font-size:12px;
+  line-height:1.5;
+}
+.catalog-image-placeholder span{
+  margin-top:6px;
+  font:600 11px var(--mono);
+  color:var(--text);
+  word-break:break-all;
+}
+.catalog-image-wrap.missing .catalog-image-placeholder{display:flex}
+.catalog-card-body{
+  padding:14px;
+  display:grid;
+  gap:10px;
+}
+.catalog-card-top{
+  display:flex;
+  gap:8px;
+  justify-content:space-between;
+  align-items:flex-start;
+}
+.catalog-title{
+  margin:0;
+  font-size:15px;
+  line-height:1.3;
+  color:var(--text);
+}
+.catalog-price{
+  flex:0 0 auto;
+  font:700 13px var(--mono);
+  color:#0F766E;
+  background:#CCFBF1;
+  border:1px solid #99F6E4;
+  border-radius:999px;
+  padding:5px 8px;
+}
+.catalog-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.catalog-tag{
+  padding:4px 7px;
+  border-radius:999px;
+  background:var(--surface2);
+  color:var(--text2);
+  font-size:10px;
+  font-weight:600;
+}
+.catalog-desc{
+  color:var(--text2);
+  font-size:12px;
+  line-height:1.55;
+  min-height:54px;
+}
+.catalog-specs{
+  display:grid;
+  gap:5px;
+  padding-top:2px;
+}
+.catalog-spec{
+  display:grid;
+  grid-template-columns:84px 1fr;
+  gap:8px;
+  font-size:11px;
+  line-height:1.4;
+}
+.catalog-spec b{
+  color:var(--text2);
+  font-weight:600;
+}
+.catalog-spec span{
+  color:var(--text);
+}
+.catalog-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:4px;
+}
+.catalog-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  border:1px solid var(--border);
+  padding:7px 10px;
+  color:var(--text);
+  background:#fff;
+  font-size:11px;
+  font-weight:600;
+  text-decoration:none;
+}
+.catalog-link.primary{
+  background:var(--bg);
+  color:#fff;
+  border-color:var(--bg);
+}
+.catalog-empty{
+  padding:22px;
+  border:1px dashed var(--border);
+  border-radius:16px;
+  background:#fff;
+  color:var(--text2);
+  font-size:13px;
+}
 @media(max-width:1060px){
   .hero{grid-template-columns:1fr}
   .context-strip{grid-template-columns:1fr}
@@ -768,6 +971,8 @@ body{
   .frame-shell{min-height:900px}
   .synth-context-grid,
   .synth-kpi-grid{grid-template-columns:1fr}
+  .catalog-toolbar{grid-template-columns:1fr}
+  .catalog-wrap{padding:14px}
 }
 </style>
 </head>
@@ -806,6 +1011,7 @@ body{
       <button class="main-tab" id="tab-store" role="tab" aria-selected="false" aria-controls="panel-store" data-tab="store">② Store Pre-Sizing</button>
       <button class="main-tab" id="tab-vehicles" role="tab" aria-selected="false" aria-controls="panel-vehicles" data-tab="vehicles">③ Vehicles & Washing</button>
       <button class="main-tab" id="tab-synthesis" role="tab" aria-selected="false" aria-controls="panel-synthesis" data-tab="synthesis">④ Synthesis</button>
+      <button class="main-tab" id="tab-catalog" role="tab" aria-selected="false" aria-controls="panel-catalog" data-tab="catalog">5 Catalogue</button>
     </nav>
   </div>
 
@@ -1080,11 +1286,50 @@ body{
           </div>
         </div>
       </section>
+
+      <section class="module-panel" id="panel-catalog" role="tabpanel" aria-labelledby="tab-catalog">
+        <div class="module-shell">
+          <div class="module-head">
+            <div>
+              <div class="module-title-row">
+                <h2 class="module-title">Equipment Catalogue</h2>
+                <span class="module-badge fitout">REFERENCE / SOURCING</span>
+              </div>
+              <div class="module-copy">Read-only sourcing catalogue using simulator prices, supplier references, product links, and local equipment images.</div>
+            </div>
+          </div>
+          <div class="frame-wrap">
+            <div class="frame-meta">
+              <div class="frame-status ready" id="status-catalog">Catalogue ready</div>
+              <div class="frame-note">Images are loaded from images/catalog/ using each equipment image key. Missing images keep a clean placeholder.</div>
+            </div>
+            <div class="catalog-wrap">
+              <div class="catalog-toolbar">
+                <div class="catalog-field">
+                  <label for="catalog-search">Search</label>
+                  <input class="catalog-input" id="catalog-search" type="search" placeholder="Search equipment, supplier, reference...">
+                </div>
+                <div class="catalog-field">
+                  <label for="catalog-module-filter">Module</label>
+                  <select class="catalog-input" id="catalog-module-filter"></select>
+                </div>
+                <div class="catalog-field">
+                  <label for="catalog-category-filter">Category</label>
+                  <select class="catalog-input" id="catalog-category-filter"></select>
+                </div>
+              </div>
+              <div class="catalog-meta" id="catalog-meta"></div>
+              <div class="catalog-grid" id="catalog-grid"></div>
+            </div>
+          </div>
+        </div>
+      </section>
     </section>
 
   </main>
 </div>
 
+<script src="catalog_data.js"></script>
 <script>
 const MODULES = {
   fitout:{
@@ -1132,10 +1377,19 @@ const MODULES = {
     tabId:'tab-synthesis',
     statusId:'status-synthesis',
   },
+  catalog:{
+    key:'catalog',
+    label:'Catalogue',
+    summary:'Equipment references, supplier links and simulator unit prices.',
+    src:'',
+    panelId:'panel-catalog',
+    tabId:'tab-catalog',
+    statusId:'status-catalog',
+  },
 };
 
 const EMBEDDED_KEYS = ['fitout','store','vehicles'];
-const TAB_ORDER = ['fitout','store','vehicles','synthesis'];
+const TAB_ORDER = ['fitout','store','vehicles','synthesis','catalog'];
 const CONTEXT_KEY = 'depot-suite-project-context';
 const PROJECT_DB_NAME = 'depot-suite-projects';
 const PROJECT_DB_VERSION = 1;
@@ -1981,6 +2235,149 @@ function renderSynthesis(){
     </tbody>`;
 }
 
+function escapeHtml(value){
+  return String(value ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+function getCatalogItems(){
+  return Array.isArray(window.DEPOT_CATALOG_ITEMS) ? window.DEPOT_CATALOG_ITEMS : [];
+}
+
+function getCatalogImageSrc(imageKey, attempt=0){
+  const exts = ['jpg','JPG','png','PNG','webp','WEBP','jpeg','JPEG'];
+  const ext = exts[attempt] || exts[0];
+  return `images/catalog/${encodeURIComponent(imageKey)}.${ext}`;
+}
+
+function markCatalogImageLoaded(img){
+  img.classList.add('loaded');
+  img.closest('.catalog-image-wrap')?.classList.remove('missing');
+}
+
+function handleCatalogImageError(img){
+  const key = img.dataset.imageKey || '';
+  const nextAttempt = Number(img.dataset.imageAttempt || 0) + 1;
+  const maxAttempts = 8;
+  if(key && nextAttempt < maxAttempts){
+    img.dataset.imageAttempt = String(nextAttempt);
+    img.src = getCatalogImageSrc(key, nextAttempt);
+    return;
+  }
+  img.style.display = 'none';
+  img.closest('.catalog-image-wrap')?.classList.add('missing');
+}
+
+function splitCatalogUrls(value){
+  return String(value || '')
+    .split('|')
+    .map(url=>url.trim())
+    .filter(Boolean);
+}
+
+function fillCatalogFilters(){
+  const items = getCatalogItems();
+  const moduleSelect = document.getElementById('catalog-module-filter');
+  const categorySelect = document.getElementById('catalog-category-filter');
+  if(!moduleSelect || !categorySelect) return;
+  if(moduleSelect.dataset.ready !== '1'){
+    const modules = [...new Set(items.map(item=>item.module).filter(Boolean))].sort();
+    moduleSelect.innerHTML = '<option value="">All modules</option>' +
+      modules.map(module=>`<option value="${escapeHtml(module)}">${escapeHtml(module)}</option>`).join('');
+    moduleSelect.dataset.ready = '1';
+  }
+  const selectedCategory = categorySelect.value;
+  const selectedModule = moduleSelect.value;
+  const categories = [...new Set(items
+    .filter(item=>!selectedModule || item.module === selectedModule)
+    .map(item=>item.category)
+    .filter(Boolean))]
+    .sort();
+  categorySelect.innerHTML = '<option value="">All categories</option>' +
+    categories.map(category=>`<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join('');
+  if(categories.includes(selectedCategory)) categorySelect.value = selectedCategory;
+}
+
+function renderCatalog(){
+  fillCatalogFilters();
+  const items = getCatalogItems();
+  const grid = document.getElementById('catalog-grid');
+  const meta = document.getElementById('catalog-meta');
+  if(!grid || !meta) return;
+
+  const query = (document.getElementById('catalog-search')?.value || '').trim().toLowerCase();
+  const moduleFilter = document.getElementById('catalog-module-filter')?.value || '';
+  const categoryFilter = document.getElementById('catalog-category-filter')?.value || '';
+  const filtered = items.filter(item=>{
+    if(moduleFilter && item.module !== moduleFilter) return false;
+    if(categoryFilter && item.category !== categoryFilter) return false;
+    if(!query) return true;
+    const haystack = [
+      item.module,
+      item.category,
+      item.item,
+      item.description,
+      item.supplier,
+      item.reference,
+      item.imageKey,
+    ].join(' ').toLowerCase();
+    return haystack.includes(query);
+  });
+
+  meta.innerHTML = [
+    `<span class="catalog-meta-pill">${filtered.length} / ${items.length} items</span>`,
+    `<span class="catalog-meta-pill">Simulator unit prices only</span>`,
+    `<span class="catalog-meta-pill">Image path: images/catalog/&lt;imageKey&gt;.(jpg/png/webp)</span>`,
+  ].join('');
+
+  if(!filtered.length){
+    grid.innerHTML = '<div class="catalog-empty">No equipment matches the current filters.</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(item=>{
+    const urls = [...splitCatalogUrls(item.productUrl), ...splitCatalogUrls(item.priceSourceUrl)]
+      .filter((url, index, arr)=>arr.indexOf(url) === index);
+    const recurring = Number(item.simulatorAnnualRecurring || 0);
+    const imageKey = item.imageKey || '';
+    const expectedImage = `images/catalog/${imageKey}.jpg`;
+    return `
+      <article class="catalog-card">
+        <div class="catalog-image-wrap">
+          <img src="${getCatalogImageSrc(imageKey,0)}" data-image-key="${escapeHtml(imageKey)}" data-image-attempt="0" alt="${escapeHtml(item.item)}" onload="markCatalogImageLoaded(this)" onerror="handleCatalogImageError(this)">
+          <div class="catalog-image-placeholder">Image expected<span>${escapeHtml(expectedImage)}</span></div>
+        </div>
+        <div class="catalog-card-body">
+          <div class="catalog-card-top">
+            <h3 class="catalog-title">${escapeHtml(item.item)}</h3>
+            <div class="catalog-price">${formatCurrencyValue(item.simulatorUnitPrice, 'EUR')}</div>
+          </div>
+          <div class="catalog-tags">
+            <span class="catalog-tag">${escapeHtml(item.module)}</span>
+            <span class="catalog-tag">${escapeHtml(item.category)}</span>
+          </div>
+          <div class="catalog-desc">${escapeHtml(item.description || 'Reference equipment used by the simulator catalogue.')}</div>
+          <div class="catalog-specs">
+            <div class="catalog-spec"><b>Basis</b><span>${escapeHtml(item.qtyBasis || '1')}</span></div>
+            <div class="catalog-spec"><b>Annual</b><span>${recurring ? formatCurrencyValue(recurring, 'EUR') : 'No recurring cost'}</span></div>
+            <div class="catalog-spec"><b>Supplier</b><span>${escapeHtml(item.supplier || 'To be confirmed')}</span></div>
+            <div class="catalog-spec"><b>Reference</b><span>${escapeHtml(item.reference || 'To be confirmed')}</span></div>
+            <div class="catalog-spec"><b>Image key</b><span>${escapeHtml(imageKey)}</span></div>
+          </div>
+          <div class="catalog-actions">
+            ${urls.map((url, index)=>`<a class="catalog-link ${index === 0 ? 'primary' : ''}" href="${escapeHtml(url)}" target="_blank" rel="noopener">${index === 0 ? 'Open supplier link' : `Source ${index + 1}`}</a>`).join('')}
+          </div>
+        </div>
+      </article>
+    `;
+  }).join('');
+  setStatus('catalog', `${filtered.length} catalogue items`, true);
+}
+
 function renderProjectContext(){
   const ctx = getNormalizedContext();
   const project = ctx.projectName || 'Project not set';
@@ -2018,7 +2415,7 @@ function renderProjectContext(){
     sourceLink.style.pointerEvents = '';
     sourceLink.style.opacity = '';
   }else{
-    sourceLink.textContent = 'Synthesis has no standalone source file';
+    sourceLink.textContent = `${module.label} has no standalone source file`;
     sourceLink.removeAttribute('href');
     sourceLink.style.pointerEvents = 'none';
     sourceLink.style.opacity = '.6';
@@ -2306,6 +2703,8 @@ function activateTab(key, pushHash=true){
   if(key === 'synthesis'){
     loadSynthesisDependencies();
     renderSynthesis();
+  }else if(key === 'catalog'){
+    renderCatalog();
   }else{
     ensureLoaded(key);
     queueHeightSync(key);
@@ -2345,6 +2744,11 @@ document.getElementById('synth-refresh')?.addEventListener('click', ()=>{
 
 document.getElementById('synth-export')?.addEventListener('click', ()=>{
   exportProjectWorkbook();
+});
+
+['catalog-search','catalog-module-filter','catalog-category-filter'].forEach(id=>{
+  document.getElementById(id)?.addEventListener('input', renderCatalog);
+  document.getElementById(id)?.addEventListener('change', renderCatalog);
 });
 
 window.addEventListener('message', e=>{
