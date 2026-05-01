@@ -2,3 +2,6 @@
 node_modules/
 Thumbs.db
 Desktop.ini
+*.xls
+catalog_image_keys.csv
+debug-export-smoke.js
