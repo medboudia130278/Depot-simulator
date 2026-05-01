@@ -347,6 +347,21 @@ window.DEPOT_CATALOG_ITEMS = [
     "description": "Bundle benchmark from Manutan UK."
   },
   {
+    "id": "fitout-datashow",
+    "module": "Fit-Out",
+    "category": "Management Office",
+    "item": "Datashow",
+    "imageKey": "datashow",
+    "qtyBasis": "1",
+    "simulatorUnitPrice": 1269,
+    "simulatorAnnualRecurring": 80,
+    "supplier": "Epson",
+    "reference": "Epson EB-2250U Full HD",
+    "productUrl": "https://www.epson.co.uk/en_GB/products/projector/portable/eb-2250u-projector/p/21004",
+    "priceSourceUrl": "https://www.idealo.co.uk/compare/5342646/epson-eb-2250u.html",
+    "description": "WUXGA (1920×1200) 3LCD business projector, 5 000 lm, lamp life 4 000 h standard / 7 000 h eco (ELPLP96). Meeting room and briefing use. Annual recurring: lamp prorated + filter/cleaning + annual service."
+  },
+  {
     "id": "fitout-mfc-printer-scanner-a3-colour",
     "module": "Fit-Out",
     "category": "Common Areas",
