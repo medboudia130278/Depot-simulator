@@ -1414,6 +1414,7 @@ let synthesisRefreshTimer = 0;
 let summaryMetricsCache = {fitout:null, store:null, vehicles:null};
 let summaryRequestWaiters = {fitout:[], store:[], vehicles:[]};
 let exportDataWaiters = {fitout:[], store:[]};
+let projectStateWaiters = {fitout:[], store:[], vehicles:[]};
 
 function loadProjectContext(){
   try{
@@ -1579,15 +1580,44 @@ function getDefaultModuleState(key){
   }
 }
 
-function collectProjectModulesState(){
-  return {
-    fitout:getFrameProjectState('fitout'),
-    store:getFrameProjectState('store'),
-    vehicles:getFrameProjectState('vehicles'),
-  };
+async function requestModuleProjectState(key, timeoutMs=1500){
+  if(!EMBEDDED_KEYS.includes(key)) return null;
+  const cfg = MODULES[key];
+  const frame = document.getElementById(cfg.frameId);
+  if(!frame || frame.dataset.loaded !== '1') return cloneJson(pendingModuleState[key]);
+  try{
+    const frameWin = frame.contentWindow;
+    if(frameWin && typeof frameWin.getProjectState === 'function'){
+      return cloneJson(frameWin.getProjectState());
+    }
+  }catch{}
+  return new Promise(resolve=>{
+    const entry = {
+      resolve:state=>resolve(cloneJson(state)),
+      reject:()=>resolve(cloneJson(pendingModuleState[key])),
+      timeoutId:window.setTimeout(()=>{
+        rejectWaiters(projectStateWaiters, key, new Error(`Timed out waiting for ${key} project state`));
+      }, timeoutMs),
+    };
+    enqueueWaiter(projectStateWaiters, key, entry);
+    try{
+      frame.contentWindow?.postMessage({type:'depot-suite-project-state-request'}, '*');
+    }catch{
+      rejectWaiters(projectStateWaiters, key, new Error(`Failed to request ${key} project state`));
+    }
+  });
 }
 
-function buildProjectRecord(projectIdOverride){
+async function collectProjectModulesState(){
+  const [fitout, store, vehicles] = await Promise.all([
+    requestModuleProjectState('fitout'),
+    requestModuleProjectState('store'),
+    requestModuleProjectState('vehicles'),
+  ]);
+  return {fitout, store, vehicles};
+}
+
+function buildProjectRecord(projectIdOverride, modules){
   const now = new Date().toISOString();
   const id = projectIdOverride || currentProjectId || createProjectId();
   const existing = projectList.find(project=>project.id === id);
@@ -1597,7 +1627,7 @@ function buildProjectRecord(projectIdOverride){
     id,
     name,
     context: ctx,
-    modules: collectProjectModulesState(),
+    modules: modules || {fitout:null, store:null, vehicles:null},
     activeTab: activeKey,
     createdAt: existing?.createdAt || now,
     updatedAt: now,
@@ -1610,14 +1640,17 @@ function applyPendingProjectStateToFrame(key){
   if(!frame || frame.dataset.loaded !== '1') return false;
   const state = pendingModuleState[key] || getDefaultModuleState(key);
   if(!state) return false;
+  const stateClone = cloneJson(state);
   try{
     const frameWin = frame.contentWindow;
     if(frameWin && typeof frameWin.applyProjectState === 'function'){
-      frameWin.applyProjectState(cloneJson(state));
-      return true;
+      frameWin.applyProjectState(stateClone);
     }
   }catch{}
-  return false;
+  try{
+    frame.contentWindow.postMessage({type:'depot-suite-project-state-apply', state:stateClone}, '*');
+  }catch{}
+  return true;
 }
 
 function setCurrentProjectId(id){
@@ -2445,7 +2478,8 @@ async function refreshProjectLibrary(){
 }
 
 async function saveCurrentProject(projectIdOverride){
-  const record = buildProjectRecord(projectIdOverride);
+  const modules = await collectProjectModulesState();
+  const record = buildProjectRecord(projectIdOverride, modules);
   await writeProjectToDb(record);
   setCurrentProjectId(record.id);
   projectList = projectList.filter(project=>project.id !== record.id).concat(record);
@@ -2491,7 +2525,7 @@ async function createNewProject(){
   const suggested = projectContext.projectName || 'New Project';
   const name = window.prompt('Project name', suggested);
   if(name === null) return;
-  setCurrentProjectId('');
+  setCurrentProjectId(createProjectId());
   clearWorkspace();
   projectContext.projectName = name.trim() || 'New Project';
   fillContextInputs();
@@ -2501,7 +2535,8 @@ async function createNewProject(){
 }
 
 async function duplicateCurrentProject(){
-  const source = buildProjectRecord();
+  const modules = await collectProjectModulesState();
+  const source = buildProjectRecord(null, modules);
   const copyName = window.prompt('Duplicate project as', `${source.name || 'Untitled project'} Copy`);
   if(copyName === null) return;
   const duplicate = {
@@ -2656,6 +2691,7 @@ function ensureLoaded(key, forceReload=false){
     if(EMBEDDED_KEYS.includes(key)) summaryMetricsCache[key] = null;
     if(summaryRequestWaiters[key]) rejectWaiters(summaryRequestWaiters, key, new Error(`${key} frame reloaded`));
     if(exportDataWaiters[key]) rejectWaiters(exportDataWaiters, key, new Error(`${key} frame reloaded`));
+    if(projectStateWaiters[key]) rejectWaiters(projectStateWaiters, key, new Error(`${key} frame reloaded`));
     frame.dataset.loaded = '';
     frame.dataset.requested = '';
     frame.dataset.blankRetry = '';
@@ -2666,7 +2702,6 @@ function ensureLoaded(key, forceReload=false){
     frame.dataset.defaultProjectState = '';
     frame.dataset.defaultProjectStateCaptured = '';
     frame.classList.add('hidden');
-    frame.removeAttribute('src');
     if(placeholder) placeholder.style.display = 'flex';
     setStatus(key, 'Reloading...', false);
   }
@@ -2682,7 +2717,9 @@ function ensureLoaded(key, forceReload=false){
   }
 
   setStatus(key, 'Loading...', false);
-  frame.src = new URL(cfg.src, window.location.href).toString();
+  const url = new URL(cfg.src, window.location.href);
+  if(forceReload) url.searchParams.set('_ds_reload', String(Date.now()));
+  frame.src = url.toString();
   frame.dataset.requested = '1';
 }
 
@@ -2771,6 +2808,12 @@ window.addEventListener('message', e=>{
     const source = data.source;
     if(!Object.prototype.hasOwnProperty.call(exportDataWaiters, source)) return;
     resolveWaiters(exportDataWaiters, source, data.payload);
+    return;
+  }
+  if(data.type === 'depot-suite-project-state'){
+    const source = data.source;
+    if(!EMBEDDED_KEYS.includes(source)) return;
+    resolveWaiters(projectStateWaiters, source, data.state);
   }
 });
 
@@ -2904,4 +2947,3 @@ if(sessionStorage.getItem(AUTH_SESSION_KEY) === '1'){
 </script>
 </body>
 </html>
-

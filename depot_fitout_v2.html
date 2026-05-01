@@ -1048,12 +1048,26 @@ window.addEventListener('message', e=>{
     applySharedContext(data.context);
     return;
   }
+  if(data.type === 'depot-suite-project-state-apply'){
+    applyProjectState(data.state);
+    return;
+  }
   if(data.type === 'depot-suite-summary-request'){
     publishSummaryMetrics();
     return;
   }
   if(data.type === 'depot-suite-export-request'){
     publishExportData();
+    return;
+  }
+  if(data.type === 'depot-suite-project-state-request'){
+    try{
+      window.parent.postMessage({
+        type:'depot-suite-project-state',
+        source:'fitout',
+        state:getProjectState(),
+      }, '*');
+    }catch{}
   }
 });
 function renderItems(){

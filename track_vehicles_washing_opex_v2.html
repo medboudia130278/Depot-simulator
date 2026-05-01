@@ -168,13 +168,13 @@ body{font-family:var(--sans);background:var(--surface);color:var(--text);font-si
       <div class="row2">
         <div class="fg">
           <label id="lbl-g-fuel">Diesel fuel price (EUR/L)</label>
-          <input type="number" id="g_fuel" value="1.35" min="0.5" max="5" step="0.01" oninput="update()">
-          <span class="hint">Local depot supply price incl. taxes.</span>
+          <input type="number" id="g_fuel" value="1.35" min="0.5" max="5" step="0.01" oninput="markUnitPriceManual('fuel')">
+          <span class="hint" id="g_fuel_hint">Local depot supply price incl. taxes.</span>
         </div>
         <div class="fg">
           <label id="lbl-g-water">Industrial water price (EUR/m³)</label>
-          <input type="number" id="g_water" value="3.50" min="0.1" max="20" step="0.1" oninput="update()">
-          <span class="hint">Track cleaning vehicles only. Industrial supply rate.</span>
+          <input type="number" id="g_water" value="3.50" min="0.1" max="20" step="0.1" oninput="markUnitPriceManual('water')">
+          <span class="hint" id="g_water_hint">Track cleaning vehicles only. Industrial supply rate.</span>
         </div>
       </div>
     </div>
@@ -276,8 +276,8 @@ Speed is the operational working speed, not transit.</span>
             <span class="hint">% of gross water recovered and reused. Modern machines: 70–85%. Poorly maintained systems: 40–50%.</span>
           </div>
           <div class="fg"><label id="lbl-w-wprice">Fresh water price (EUR/m³)</label>
-            <input type="number" id="w_wprice" value="3.50" min="0.1" max="20" step="0.1" oninput="updateWash()">
-            <span class="hint">Tap water or industrial supply. Can differ from track cleaning rate.</span>
+            <input type="number" id="w_wprice" value="3.50" min="0.1" max="20" step="0.1" oninput="markUnitPriceManual('washWater')">
+            <span class="hint" id="w_wprice_hint">Tap water or industrial supply. Can differ from track cleaning rate.</span>
           </div>
           <div class="rec-bar" id="rec-bar">
             <label>Net water billed per wash:</label>
@@ -340,6 +340,19 @@ Speed is the operational working speed, not transit.</span>
 <script>
 // ── GLOBAL STATE ──────────────────────────────────────────────────────────────
 const G = {line:35, years:10, fuel:1.35, water:3.50};
+const UNIT_PRICE_REGION_SCHEMA_VERSION = 1;
+const DEFAULT_UNIT_PRICES = {fuel:1.35, water:3.50};
+const REGION_UNIT_PRICES = {
+  'North Africa': {fuel:1.10, water:1.20},
+  'Sub-saharan Africa': {fuel:1.25, water:1.00},
+  'Middle East': {fuel:0.85, water:2.00},
+  'West Europe': {fuel:1.75, water:4.50},
+  'Eastern Europe': {fuel:1.45, water:2.80},
+  'North America': {fuel:1.05, water:2.20},
+  'Latin America': {fuel:1.20, water:1.70},
+};
+let appliedUnitPriceRegion = '';
+let manualUnitPriceOverride = {fuel:false, water:false, washWater:false};
 
 let nextId = 1;
 const VEHICLES = [];
@@ -431,6 +444,59 @@ function fE(n){
 function fN(n,dec=0){return Math.round(n*Math.pow(10,dec))/Math.pow(10,dec);}
 function fL(n){return n===0?'—':Math.round(n).toLocaleString('en-US')+' L';}
 function fM(n){return n===0?'—':fN(n,1).toLocaleString('en-US')+' m³';}
+function getRegionName(){
+  return String(getSharedContext()?.regionName || '').trim();
+}
+function getRegionUnitPrices(regionName){
+  return REGION_UNIT_PRICES[regionName] || DEFAULT_UNIT_PRICES;
+}
+function setNumberInputValue(id, value){
+  const el = document.getElementById(id);
+  if(el) el.value = String(value);
+}
+function applyRegionUnitPrices(ctx){
+  const regionName = String(ctx?.regionName || '').trim();
+  if(regionName === appliedUnitPriceRegion) return false;
+  const prices = getRegionUnitPrices(regionName);
+  appliedUnitPriceRegion = regionName;
+  manualUnitPriceOverride = {fuel:false, water:false, washWater:false};
+
+  G.fuel = prices.fuel;
+  G.water = prices.water;
+  W.wprice = prices.water;
+  setNumberInputValue('g_fuel', G.fuel);
+  setNumberInputValue('g_water', G.water);
+  setNumberInputValue('w_wprice', W.wprice);
+  return true;
+}
+function markUnitPriceManual(field){
+  if(Object.prototype.hasOwnProperty.call(manualUnitPriceOverride, field)){
+    manualUnitPriceOverride[field] = true;
+  }
+  if(field === 'washWater'){
+    updateWash();
+    updateUnitPriceHints();
+  }else{
+    update();
+  }
+}
+function updateUnitPriceHints(){
+  const regionName = getRegionName();
+  const prices = getRegionUnitPrices(regionName);
+  const regionLabel = regionName || 'Default';
+  const fuelHint = document.getElementById('g_fuel_hint');
+  const waterHint = document.getElementById('g_water_hint');
+  const washHint = document.getElementById('w_wprice_hint');
+  if(fuelHint){
+    fuelHint.textContent = `Regional default ${regionLabel}: ${prices.fuel}/L. ${manualUnitPriceOverride.fuel ? 'Manual override active.' : 'Editable if needed.'}`;
+  }
+  if(waterHint){
+    waterHint.textContent = `Regional default ${regionLabel}: ${prices.water}/m3. ${manualUnitPriceOverride.water ? 'Manual override active.' : 'Editable if needed.'}`;
+  }
+  if(washHint){
+    washHint.textContent = `Regional default ${regionLabel}: ${prices.water}/m3. ${manualUnitPriceOverride.washWater ? 'Manual override active.' : 'Editable if needed.'}`;
+  }
+}
 function updateCurrencyUi(){
   const currency = getCurrencyCode();
   const textById = {
@@ -447,11 +513,13 @@ function updateCurrencyUi(){
   if(note){
     note.textContent = 'All values are estimates based on the parameters entered. Fuel consumption figures are derived from industry REX data (UIC, Network Rail, SNCF publications). Validate against actual vehicle spec sheets and local operating conditions. Prices shown in ' + currency + '.';
   }
+  updateUnitPriceHints();
 }
 function applySharedContext(ctx){
   if(!ctx || typeof ctx!=='object') return false;
   window.DEPOT_SHARED_CONTEXT = ctx;
   let changed = false;
+  if(applyRegionUnitPrices(ctx)) changed = true;
   if(ctx.lineLengthKm !== undefined && ctx.lineLengthKm !== null && Number.isFinite(Number(ctx.lineLengthKm))){
     const nextLine = Math.max(1, Number(ctx.lineLengthKm));
     if(G.line !== nextLine){
@@ -478,6 +546,9 @@ function getProjectState(){
     global:{...G},
     washing:{...W},
     vehicles:VEHICLES.map(v=>({...v})),
+    unitPriceSchemaVersion:UNIT_PRICE_REGION_SCHEMA_VERSION,
+    unitPriceRegion:appliedUnitPriceRegion,
+    unitPriceOverrides:{...manualUnitPriceOverride},
     nextVehicleId:nextId,
     activePane:document.querySelector('.tab.active')?.dataset.tab || 'pane-global',
   };
@@ -493,6 +564,15 @@ function applyProjectState(state){
   if(Array.isArray(state.vehicles)){
     VEHICLES.splice(0, VEHICLES.length, ...state.vehicles.map(v=>({...v})));
   }
+  const hasUnitPriceSchema = state.unitPriceSchemaVersion === UNIT_PRICE_REGION_SCHEMA_VERSION;
+  appliedUnitPriceRegion = hasUnitPriceSchema && typeof state.unitPriceRegion === 'string'
+    ? state.unitPriceRegion
+    : '';
+  manualUnitPriceOverride = hasUnitPriceSchema ? {
+    fuel:!!state.unitPriceOverrides?.fuel,
+    water:!!state.unitPriceOverrides?.water,
+    washWater:!!state.unitPriceOverrides?.washWater,
+  } : {fuel:false, water:false, washWater:false};
   if(Number.isFinite(Number(state.nextVehicleId))){
     nextId = Number(state.nextVehicleId);
   }else{
@@ -936,8 +1016,22 @@ window.addEventListener('message', e=>{
     applySharedContext(data.context);
     return;
   }
+  if(data.type === 'depot-suite-project-state-apply'){
+    applyProjectState(data.state);
+    return;
+  }
   if(data.type === 'depot-suite-summary-request'){
     publishSummaryMetrics();
+    return;
+  }
+  if(data.type === 'depot-suite-project-state-request'){
+    try{
+      window.parent.postMessage({
+        type:'depot-suite-project-state',
+        source:'vehicles',
+        state:getProjectState(),
+      }, '*');
+    }catch{}
   }
 });
 updateWash();

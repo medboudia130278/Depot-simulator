@@ -368,6 +368,7 @@ let layoutZones = [];
 let bldg_H_m = 30;
 let ACTIVE_PROFILE = '';
 let LAST_SHARED_PROFILE = '';
+const COSTING_SCHEMA_VERSION = 1;
 
 // ─── CALCULATION ─────────────────────────────────────────────────────────────
 function r1(x){return Math.round(x*10)/10}
@@ -416,6 +417,7 @@ function getProjectState(){
       fam_types:[...P.fam_types],
     },
     costing:{
+      schemaVersion:COSTING_SCHEMA_VERSION,
       region:COST.region,
       prices:{...COST.prices},
       includeStore:COST.includeStore,
@@ -434,11 +436,12 @@ function applyProjectState(state){
     });
   }
   if(state.costing && typeof state.costing==='object'){
-    if(state.costing.region && REGIONS[state.costing.region]){
+    const hasCostingSchema = state.costing.schemaVersion === COSTING_SCHEMA_VERSION;
+    if(hasCostingSchema && state.costing.region && REGIONS[state.costing.region]){
       COST.region = state.costing.region;
     }
     COST.includeStore = state.costing.includeStore !== false;
-    if(state.costing.prices && typeof state.costing.prices==='object'){
+    if(hasCostingSchema && state.costing.prices && typeof state.costing.prices==='object'){
       COST.prices = {...COST.prices, ...state.costing.prices};
     }else if(REGIONS[COST.region]){
       COST.prices = {...REGIONS[COST.region].prices};
@@ -1075,12 +1078,26 @@ window.addEventListener('message', e=>{
     applySharedContext(data.context);
     return;
   }
+  if(data.type === 'depot-suite-project-state-apply'){
+    applyProjectState(data.state);
+    return;
+  }
   if(data.type === 'depot-suite-summary-request'){
     publishSummaryMetrics();
     return;
   }
   if(data.type === 'depot-suite-export-request'){
     publishExportData();
+    return;
+  }
+  if(data.type === 'depot-suite-project-state-request'){
+    try{
+      window.parent.postMessage({
+        type:'depot-suite-project-state',
+        source:'store',
+        state:getProjectState(),
+      }, '*');
+    }catch{}
   }
 });
 
