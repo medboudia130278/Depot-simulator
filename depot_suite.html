@@ -1899,6 +1899,14 @@ function waitForFrameLoaded(key, timeoutMs=10000){
 async function requestModuleSummaryMetrics(key, timeoutMs=8000){
   if(summaryMetricsCache[key]) return cloneJson(summaryMetricsCache[key]);
   const frame = await waitForFrameLoaded(key, timeoutMs);
+  try{
+    const frameWin = frame.contentWindow;
+    if(frameWin && typeof frameWin.getSummaryMetrics === 'function'){
+      const metrics = cloneJson(frameWin.getSummaryMetrics());
+      summaryMetricsCache[key] = cloneJson(metrics);
+      return metrics;
+    }
+  }catch{}
   return new Promise((resolve,reject)=>{
     const entry = {
       resolve:metrics=>resolve(cloneJson(metrics)),
@@ -1916,6 +1924,12 @@ async function requestModuleSummaryMetrics(key, timeoutMs=8000){
 
 async function requestModuleExportData(key, timeoutMs=8000){
   const frame = await waitForFrameLoaded(key, timeoutMs);
+  try{
+    const frameWin = frame.contentWindow;
+    if(frameWin && typeof frameWin.getExportRows === 'function'){
+      return {rows: cloneJson(frameWin.getExportRows())};
+    }
+  }catch{}
   return new Promise((resolve,reject)=>{
     const entry = {
       resolve:data=>resolve(cloneJson(data)),
@@ -1992,7 +2006,7 @@ function downloadWorkbookXml(filename, xml){
   document.body.appendChild(link);
   link.click();
   link.remove();
-  window.setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  window.setTimeout(()=>URL.revokeObjectURL(url), 60000);
 }
 
 function sanitizeFileName(value){
