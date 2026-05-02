@@ -406,6 +406,8 @@ body{
   cursor:pointer;
 }
 .ctx-btn:hover{background:var(--surface2)}
+.ctx-btn-teal{border-color:#99F6E4;background:#F0FDFA;color:var(--teal)}
+.ctx-btn-teal:hover{background:#CCFBF1}
 .context-summary{
   padding:18px;
   display:grid;
@@ -1079,6 +1081,9 @@ body{
           <button class="ctx-btn" type="button" id="project-save">Save project</button>
           <button class="ctx-btn" type="button" id="project-duplicate">Duplicate</button>
           <button class="ctx-btn" type="button" id="project-delete">Delete</button>
+          <button class="ctx-btn ctx-btn-teal" type="button" id="project-export">Export .json</button>
+          <button class="ctx-btn ctx-btn-teal" type="button" id="project-import">Import .json</button>
+          <input type="file" id="project-import-input" accept=".json" style="display:none">
         </div>
       </div>
     </section>
@@ -2610,6 +2615,62 @@ function bindContextInputs(){
   });
 }
 
+async function exportCurrentProject(){
+  const modules = await collectProjectModulesState();
+  const record = buildProjectRecord(null, modules);
+  const exportObj = {
+    _depot_suite_version: 1,
+    ...record,
+    exportedAt: new Date().toISOString(),
+  };
+  const filename = `${sanitizeFileName(record.name || 'depot_project')}_depot.json`;
+  const blob = new Blob([JSON.stringify(exportObj, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(()=>URL.revokeObjectURL(url), 60000);
+}
+
+async function importProjectFromFile(file){
+  try{
+    const text = await file.text();
+    let data;
+    try{ data = JSON.parse(text); }catch{
+      window.alert('Fichier invalide — impossible de lire le JSON.');
+      return;
+    }
+    if(data._depot_suite_version !== 1 || typeof data.modules !== 'object'){
+      window.alert('Fichier invalide — ce n\'est pas un fichier projet Depot Suite.');
+      return;
+    }
+    const now = new Date().toISOString();
+    const record = {
+      id: createProjectId(),
+      name: String(data.name || 'Projet importé'),
+      context: data.context && typeof data.context === 'object'
+        ? {...DEFAULT_CONTEXT, ...data.context}
+        : {...DEFAULT_CONTEXT},
+      modules: {
+        fitout: data.modules?.fitout || null,
+        store: data.modules?.store || null,
+        vehicles: data.modules?.vehicles || null,
+      },
+      activeTab: data.activeTab || 'fitout',
+      createdAt: data.createdAt || now,
+      updatedAt: now,
+    };
+    await writeProjectToDb(record);
+    projectList = projectList.filter(p=>p.id !== record.id).concat(record);
+    await loadProjectById(record.id);
+  }catch(err){
+    window.alert(`Erreur lors de l'import : ${err.message || err}`);
+  }
+}
+
 function bindProjectLibrary(){
   document.getElementById('project-selector').addEventListener('change', async e=>{
     const selectedProjectId = e.target.value;
@@ -2631,6 +2692,20 @@ function bindProjectLibrary(){
 
   document.getElementById('project-delete').addEventListener('click', async ()=>{
     await deleteCurrentProject();
+  });
+
+  document.getElementById('project-export').addEventListener('click', async ()=>{
+    await exportCurrentProject();
+  });
+
+  document.getElementById('project-import').addEventListener('click', ()=>{
+    document.getElementById('project-import-input').click();
+  });
+
+  document.getElementById('project-import-input').addEventListener('change', async e=>{
+    const file = e.target.files?.[0];
+    if(file) await importProjectFromFile(file);
+    e.target.value = '';
   });
 }
 
